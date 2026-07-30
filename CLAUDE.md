@@ -551,7 +551,6 @@ The approved Version 1 structure is:
 supply-chain-agent-evaluation/
 │
 ├── CLAUDE.md
-├── IMPLEMENTATION_PLAN.md
 ├── README.md
 ├── pyproject.toml
 ├── .gitignore
@@ -805,7 +804,6 @@ Must explain:
 - reproducibility limits of live LLM calls;
 - testing commands;
 - a high-level system diagram;
-- a link to `IMPLEMENTATION_PLAN.md`.
 
 It must not duplicate every detail in this contract.
 
