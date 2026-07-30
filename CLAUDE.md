@@ -257,17 +257,17 @@ Examples:
 
 The normal supply chain is a directed graph:
 
-\[
-\bar G=(V,E)
-\]
+$$
+\bar{G} = (V, E)
+$$
 
 where:
 
-- \(\bar G\) is the immutable base network;
-- \(V\) is the set of nodes;
-- \(E\) is the set of directed transport edges.
+- $\bar{G}$ is the immutable base network;
+- $V$ is the set of nodes;
+- $E$ is the set of directed transport edges.
 
-An edge \((i,j)\) permits movement from node \(i\) to node \(j\). It does not imply movement from \(j\) to \(i\).
+An edge $(i, j)$ permits movement from node $i$ to node $j$. It does not imply movement from $j$ to $i$.
 
 ## 5.2 Node meaning
 
@@ -343,13 +343,13 @@ Validation rules:
 
 ## 5.4 Current operational network
 
-The operational graph on day \(t\) is:
+The operational graph on day $t$ is:
 
-\[
-G_t=\Phi(\bar G,Z_t)
-\]
+$$
+G_t = \Phi(\bar{G}, Z_t)
+$$
 
-`G_t` consists of the immutable base definitions plus temporary operational states.
+$G_t$ consists of the immutable base definitions plus temporary operational states.
 
 Node operational state:
 
@@ -369,56 +369,55 @@ cost_multiplier
 
 All multipliers default to `1.0`.
 
-The effective edge values on day \(t\) are:
+The effective edge values on day $t$ are:
 
-\[
-capacity_{e,t}=\left\lfloor base\_capacity_e \times capacity\_multiplier_{e,t}\right\rfloor
-\]
+$$
+\text{capacity}_{e,t} = \left\lfloor \text{base\_capacity}_e \times \text{capacity\_multiplier}_{e,t} \right\rfloor
+$$
 
-\[
-lead\_time_{e,t}=\max\left(1,\left\lceil base\_lead\_time_e \times lead\_time\_multiplier_{e,t}\right\rceil\right)
-\]
+$$
+\text{lead\_time}_{e,t} = \max \left(1, \left\lceil \text{base\_lead\_time}_e \times \text{lead\_time\_multiplier}_{e,t} \right\rceil \right)
+$$
 
-\[
-unit\_cost_{e,t}=base\_unit\_cost_e \times cost\_multiplier_{e,t}
-\]
+$$
+\text{unit\_cost}_{e,t} = \text{base\_unit\_cost}_e \times \text{cost\_multiplier}_{e,t}
+$$
 
 The base graph must never be mutated.
 
 ## 5.5 Daily state
 
-At day \(t\):
+At day $t$:
 
-\[
-S_t=(G_t,I_t,B_t,H_t,D_t,Z_t,C_t)
-\]
+$$
+S_t = (G_t, I_t, B_t, H_t, D_t, Z_t, C_t)
+$$
 
 where:
 
-- \(G_t\): current operational network;
-- \(I_t\): inventory by node and product;
-- \(B_t\): backlog by destination and product;
-- \(H_t\): shipments and their positions;
-- \(D_t\): demand realized on day \(t\);
-- \(Z_t\): disruptions physically active on day \(t\);
-- \(C_t\): accumulated costs and service counters.
-
+- $G_t$: current operational network;
+- $I_t$: inventory by node and product;
+- $B_t$: backlog by destination and product;
+- $H_t$: shipments and their positions;
+- $D_t$: demand realized on day $t$;
+- $Z_t$: disruptions physically active on day $t$;
+- $C_t$: accumulated costs and service counters.
 The code representation is `SimulationState`.
 
 Policies never receive `SimulationState` directly.
 
 ## 5.6 Transition
 
-\[
-S_{t+1}=T(S_t,A_t,w_t)
-\]
+$$
+S_{t+1} = T(S_t, A_t, w_t)
+$$
 
 where:
 
-- \(T\) is shared deterministic simulation logic;
-- \(A_t\) is the validated executed action set;
-- \(w_t\) is the policy-independent exogenous event set;
-- \(S_{t+1}\) is the next state.
+- $T$ is shared deterministic simulation logic;
+- $A_t$ is the validated executed action set;
+- $w_t$ is the policy-independent exogenous event set;
+- $S_{t+1}$ is the next state.
 
 Given identical inputs, the transition must produce identical outputs.
 
@@ -426,47 +425,31 @@ Given identical inputs, the transition must produce identical outputs.
 
 For one run:
 
-\[
-J=
-C_{\text{transport}}
-+C_{\text{reroute}}
-+C_{\text{expedite}}
-+C_{\text{holding}}
-+C_{\text{backlog}}
-+C_{\text{late}}
-+C_{\text{terminal}}
-\]
+$$
+J = C_{\text{transport}} + C_{\text{reroute}} + C_{\text{expedite}} + C_{\text{holding}} + C_{\text{backlog}} + C_{\text{late}} + C_{\text{terminal}}
+$$
 
-`C_terminal` is zero when the drain phase clears all shipments and backlog. It is used only if unresolved state remains at the configured maximum drain day.
+$C_{\text{terminal}}$ is zero when the drain phase clears all shipments and backlog. It is used only if unresolved state remains at the configured maximum drain day.
 
 ## 5.8 Paired disruption metric
 
-For policy \(p\), scenario \(s\), and replication \(r\):
+For policy $p$, scenario $s$, and replication $r$:
 
-\[
-TCD_{p,s,r}
-=
-J^{\text{disrupted}}_{p,s,r}
--
-J^{\text{undisrupted}}_{p,s,r}
-\]
+$$
+\text{TCD}_{p,s,r} = J^{\text{disrupted}}_{p,s,r} - J^{\text{undisrupted}}_{p,s,r}
+$$
 
 The policy comparison is:
 
-\[
-\Delta_{s,r}
-=
-TCD_{\text{LLM},s,r}
--
-TCD_{\text{heuristic},s,r}
-\]
+$$
+\Delta_{s,r} = \text{TCD}_{\text{LLM},s,r} - \text{TCD}_{\text{heuristic},s,r}
+$$
 
 Interpretation:
 
-- \(\Delta<0\): LLM lower disruption cost;
-- \(\Delta>0\): heuristic lower disruption cost;
-- \(\Delta=0\): equal disruption cost.
-
+- $\Delta < 0$: LLM lower disruption cost;
+- $\Delta > 0$: heuristic lower disruption cost;
+- $\Delta = 0$: equal disruption cost.
 ---
 
 ## 6. Global conventions
@@ -1339,9 +1322,9 @@ Exact rules:
 
 When a shipment enters an edge:
 
-\[
-cost=quantity \times effective\_unit\_transport\_cost
-\]
+$$
+\text{cost} = \text{quantity} \times \text{effective\_unit\_transport\_cost}
+$$
 
 Charge once per edge entry.
 
@@ -1349,9 +1332,9 @@ Charge once per edge entry.
 
 When a validated `REROUTE` changes the remaining route:
 
-\[
-cost=quantity \times reroute\_cost\_per\_unit
-\]
+$$
+\text{cost} = \text{quantity} \times \text{reroute\_cost\_per\_unit}
+$$
 
 Charge on every executed reroute.
 
@@ -1359,9 +1342,9 @@ Charge on every executed reroute.
 
 When a validated `EXPEDITE` changes the remaining route:
 
-\[
-cost=quantity \times expedite\_premium\_per\_unit
-\]
+$$
+\text{cost} = \text{quantity} \times \text{expedite\_premium\_per\_unit}
+$$
 
 Emergency-edge transport cost is still charged normally at edge entry.
 
@@ -1369,37 +1352,29 @@ Emergency-edge transport cost is still charged normally at edge entry.
 
 At the end of each day:
 
-\[
-C_{holding,t}
-=
-\sum_{v,p} inventory_t(v,p)
-\times holding\_cost_p
-\]
+$$
+C_{\text{holding},t} = \sum_{v,p} \text{inventory}_t(v,p) \times \text{holding\_cost}_p
+$$
 
 ### Backlog
 
 At the end of each day:
 
-\[
-C_{backlog,t}
-=
-\sum_{v,p} backlog_t(v,p)
-\times backlog\_cost_p
-\]
+$$
+C_{\text{backlog},t} = \sum_{v,p} \text{backlog}_t(v,p) \times \text{backlog\_cost}_p
+$$
 
 ### Late delivery
 
 When a shipment reaches its final destination:
 
-\[
-lateness=\max(0, delivered\_day-due\_day)
-\]
+$$
+\text{lateness} = \max(0, \text{delivered\_day} - \text{due\_day})
+$$
 
-\[
-late\_cost
-=
-quantity \times lateness \times late\_penalty_p
-\]
+$$
+\text{late\_cost} = \text{quantity} \times \text{lateness} \times \text{late\_penalty}_p
+$$
 
 Charge once.
 
@@ -1407,23 +1382,15 @@ Charge once.
 
 At the last drain day, if unresolved state remains:
 
-\[
-terminal\_backlog
-=
-remaining\_backlog
-\times backlog\_cost\_per\_unit\_day
-\times terminal\_penalty\_days
-\]
+$$
+\text{terminal\_backlog} = \text{remaining\_backlog} \times \text{backlog\_cost\_per\_unit\_day} \times \text{terminal\_penalty\_days}
+$$
 
 For each undelivered shipment:
 
-\[
-terminal\_shipment
-=
-quantity
-\times late\_penalty\_per\_unit\_day
-\times \max(1,last\_day-due\_day)
-\]
+$$
+\text{terminal\_shipment} = \text{quantity} \times \text{late\_penalty\_per\_unit\_day} \times \max(1, \text{last\_day} - \text{due\_day})
+$$
 
 The baseline uses `terminal_penalty_days=30`.
 
@@ -1935,30 +1902,21 @@ terminated_with_unresolved_state
 ```
 
 Definitions:
+$$
+\text{same\_day\_fill\_rate} = \frac{\text{same\_day\_fulfilled}}{\text{total\_demand}}
+$$
 
-\[
-same\_day\_fill\_rate
-=
-same\_day\_fulfilled / total\_demand
-\]
+$$
+\text{final\_fulfilment\_rate} = \frac{\text{total\_demand} - \text{ending\_backlog}}{\text{total\_demand}}
+$$
 
-\[
-final\_fulfilment\_rate
-=
-(total\_demand-ending\_backlog)/total\_demand
-\]
+$$
+\text{late\_delivery\_rate} = \frac{\text{late\_delivered\_units}}{\text{delivered\_shipment\_units}}
+$$
 
-\[
-late\_delivery\_rate
-=
-late\_delivered\_units/delivered\_shipment\_units
-\]
-
-\[
-average\_lateness
-=
-total\_lateness\_unit\_days/late\_delivered\_units
-\]
+$$
+\text{average\_lateness} = \frac{\text{total\_lateness\_unit\_days}}{\text{late\_delivered\_units}}
+$$
 
 Rates are `0.0` when their denominator is zero.
 
@@ -1988,10 +1946,9 @@ p90_delta
 
 The 95% confidence interval uses:
 
-\[
-mean \pm 1.96 \times \frac{sample\_standard\_deviation}{\sqrt{n}}
-\]
-
+$$
+\text{mean} \pm 1.96 \times \frac{\text{sample\_standard\_deviation}}{\sqrt{n}}
+$$
 Percentiles use deterministic linear interpolation over sorted values.
 
 Winner:
@@ -2528,13 +2485,11 @@ For each day \(t\) after the current state:
 
 ### 14.1 Edge arrival day
 
-If a shipment enters an edge on day \(t\):
+If a shipment enters an edge on day $t$:
 
-\[
-arrival\_day
-=
-t + effective\_lead\_time + ordinary\_extra\_delay
-\]
+$$
+\text{arrival\_day} = t + \text{effective\_lead\_time} + \text{ordinary\_extra\_delay}
+$$
 
 It may not arrive on the same day it enters an edge.
 
@@ -2800,15 +2755,9 @@ It invokes fallback.
 
 For every candidate action:
 
-\[
-estimated\_total\_cost
-=
-remaining\_transport\_cost
-+
-action\_cost
-+
-estimated\_late\_penalty
-\]
+$$
+\text{estimated\_total\_cost} = \text{remaining\_transport\_cost} + \text{action\_cost} + \text{estimated\_late\_penalty}
+$$
 
 The heuristic does not estimate future holding or backlog costs.
 
@@ -2956,7 +2905,7 @@ If unresolved:
 
 ## 26. Paired experiment design
 
-For each replication \(r\):
+For each replication $r$:
 
 ```text
 one seed
@@ -3413,7 +3362,6 @@ Every implementation task follows:
 Read:
 
 - this file;
-- `CLAUDE.md`;
 - relevant source;
 - relevant tests;
 - current Git diff.
