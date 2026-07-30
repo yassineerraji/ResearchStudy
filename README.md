@@ -1,12 +1,8 @@
 # Supply-Chain Agent Evaluation
 
-This file is the front door to the project: it explains, in plain language, what I am building and why, and how to install, configure, and run it. It does not replace `CLAUDE.md`, which is the exact, binding build contract for Version 1 — formal model, file-by-file responsibilities, configuration schemas, and acceptance criteria all live there. Whenever this README and `CLAUDE.md` disagree, `CLAUDE.md` wins.
-
 ## The idea
 
-I keep hearing the same claim in supply-chain and AI circles: that large language models can act as flexible decision-makers when a supply chain gets disrupted — rerouting shipments, calling for emergency transport, judging when to wait it out. I have not seen that claim tested under conditions strict enough to trust the result. Either the comparison is informal (no shared baseline, no paired randomness, no validator rejecting nonsense actions), or the LLM is given more information or more freedom than the policy it's being compared against.
-
-This project is my attempt to test the claim properly: build a small, deterministic, fully-instrumented supply-chain simulator, then run a classical heuristic and a bounded LLM agent through **exactly** the same disruptions, the same information, the same action space, and the same cost accounting — and see what actually happens.
+This project is my attempt to build a small, deterministic, fully-instrumented supply-chain simulator, then run a classical heuristic and a bounded LLM agent through **exactly** the same disruptions, the same information, the same action space, and the same cost accounting — and see what actually happens.
 
 ## Research question
 
@@ -269,8 +265,6 @@ Version 1 is being built in sequence, from the ground up, each stage checked bef
 4. Core simulation loop        9. Baseline end-to-end experiment
 ```
 
-The full milestone contracts, acceptance criteria, and every implementation detail referenced above live in [`CLAUDE.md`](./CLAUDE.md) — that file is the authoritative build contract for this project, not this README.
-
 ## Author
 
-Yassine ERRAJI, researcher on this project.
+Yassine ERRAJI, under the supervision of Guillaume LECUÉ.
