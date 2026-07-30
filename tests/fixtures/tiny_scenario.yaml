@@ -1,0 +1,19 @@
+# Minimal disruption fixture: a short closure of the one normal-route edge
+# leading into the hub, used by unit and integration tests to check edge
+# closure handling against manually-checkable outcomes.
+
+schema_version: 1
+scenario_id: tiny_edge_closure
+description: Short closure of the supplier-to-hub edge.
+
+shocks:
+  - shock_id: close_supplier_to_hub
+    shock_type: EDGE_CLOSURE
+    target_type: EDGE
+    target_id: supplier_to_hub
+    physical_start_day: 3
+    physical_end_day: 4
+    information_day: 3
+    capacity_multiplier: 1.0
+    lead_time_multiplier: 1.0
+    cost_multiplier: 1.0

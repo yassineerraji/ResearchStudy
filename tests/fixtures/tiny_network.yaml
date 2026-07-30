@@ -1,0 +1,112 @@
+# Minimal, manually-checkable network used by unit and integration tests: one
+# supplier, one hub, one plant, one normal route, and one emergency route,
+# with fully reliable (reliability 1.0) transport and zero-variance demand so
+# every test outcome is exact and hand-calculable.
+
+schema_version: 1
+network_id: tiny_network
+
+units:
+  quantity: units
+  distance: km
+  time: day
+  currency: EUR
+
+products:
+  - product_id: widget
+    name: Widget
+    holding_cost_per_unit_day: 0.10
+    backlog_cost_per_unit_day: 1.00
+    late_penalty_per_unit_day: 0.50
+
+nodes:
+  - node_id: supplier_1
+    name: Test Supplier
+    node_type: SUPPLIER
+    latitude: null
+    longitude: null
+    storage_capacity: 100
+    processing_capacity: 50
+    source_capacity: 50
+
+  - node_id: hub_1
+    name: Test Hub
+    node_type: HUB
+    latitude: null
+    longitude: null
+    storage_capacity: 100
+    processing_capacity: 50
+    source_capacity: 0
+
+  - node_id: plant_1
+    name: Test Plant
+    node_type: PLANT
+    latitude: null
+    longitude: null
+    storage_capacity: 100
+    processing_capacity: 50
+    source_capacity: 0
+
+edges:
+  - edge_id: supplier_to_hub
+    origin_node_id: supplier_1
+    destination_node_id: hub_1
+    mode: ROAD
+    distance_km: 100
+    base_lead_time_days: 1
+    daily_capacity: 20
+    unit_transport_cost: 1.00
+    reliability: 1.0
+    emergency: false
+
+  - edge_id: hub_to_plant
+    origin_node_id: hub_1
+    destination_node_id: plant_1
+    mode: ROAD
+    distance_km: 50
+    base_lead_time_days: 1
+    daily_capacity: 20
+    unit_transport_cost: 1.00
+    reliability: 1.0
+    emergency: false
+
+  - edge_id: supplier_to_plant_air
+    origin_node_id: supplier_1
+    destination_node_id: plant_1
+    mode: AIR
+    distance_km: 300
+    base_lead_time_days: 1
+    daily_capacity: 10
+    unit_transport_cost: 5.00
+    reliability: 1.0
+    emergency: true
+
+initial_inventory:
+  - node_id: plant_1
+    product_id: widget
+    quantity: 10
+
+demand_process:
+  destination_node_id: plant_1
+  product_id: widget
+  distribution: TRUNCATED_NORMAL
+  mean_daily_demand: 5
+  standard_deviation: 0
+  minimum_daily_demand: 5
+  maximum_daily_demand: 5
+
+replenishment_plan:
+  product_id: widget
+  origin_node_id: supplier_1
+  destination_node_id: plant_1
+  first_release_day: 1
+  release_every_days: 1
+  shipment_quantity: 5
+  due_offset_days: 5
+  initial_route_edge_ids:
+    - supplier_to_hub
+    - hub_to_plant
+
+action_costs:
+  reroute_cost_per_unit: 1.00
+  expedite_premium_per_unit: 2.00

@@ -1,16 +1,17 @@
-"""Loads and strictly validates the project's YAML configuration files.
+"""Loads YAML configuration and converts it into the immutable domain model.
 
 Inside the data_io package, this module turns the network, scenario, policy,
 and experiment YAML files under configs/ into typed, validated Pydantic
 models, resolves the file paths an experiment references relative to that
-experiment file, and combines everything into one ResolvedConfig. In the full
-system, this is the place a malformed, incomplete, or internally
-inconsistent configuration is caught and reported before any simulation code
-runs, so every later stage can trust its input. It does not build the
-immutable domain objects (Node, Edge, NetworkDefinition, ...) that the
-simulation itself operates on, and it does not perform the deeper
-graph-reachability checks that require them — that conversion belongs to the
-domain and simulation packages.
+experiment file, and combines everything into one ResolvedConfig. It then
+converts a validated NetworkConfig into the frozen NetworkDefinition (Node,
+Edge, Product) the simulation actually runs on, and builds the day-0
+SimulationState from it. In the full system, this is the place a malformed,
+incomplete, or internally inconsistent configuration is caught and reported
+before any simulation code runs, and the only place configuration data turns
+into domain objects. It does not perform the deeper graph-reachability
+analysis that route enumeration needs — that belongs to simulation/routing.py
+— and it does not implement any day-to-day simulation behavior itself.
 """
 
 from __future__ import annotations
@@ -31,6 +32,22 @@ from pydantic import (
     StringConstraints,
     ValidationError,
     model_validator,
+)
+
+from supply_chain_simulator.domain.models import (
+    Edge,
+    NetworkDefinition,
+    Node,
+    NodeType,
+    Product,
+    TransportMode,
+)
+from supply_chain_simulator.domain.state import (
+    CostCounters,
+    OperationalEdgeState,
+    OperationalNodeState,
+    ServiceCounters,
+    SimulationState,
 )
 
 IdentifierStr = Annotated[str, StringConstraints(pattern=r"^[a-z0-9_]+$", min_length=1)]
@@ -479,4 +496,89 @@ def resolve_config(experiment_config_path: Path, repo_root: Path) -> ResolvedCon
         heuristic_config_path=heuristic_path,
         llm_config_path=llm_path,
         output_root=output_root,
+    )
+
+
+# --- config-to-domain conversion and day-0 state construction -----------------
+
+
+def build_network_definition(network_config: NetworkConfig) -> NetworkDefinition:
+    nodes = {
+        node.node_id: Node(
+            node_id=node.node_id,
+            name=node.name,
+            node_type=NodeType(node.node_type),
+            latitude=node.latitude,
+            longitude=node.longitude,
+            storage_capacity=node.storage_capacity,
+            processing_capacity=node.processing_capacity,
+            source_capacity=node.source_capacity,
+        )
+        for node in network_config.nodes
+    }
+    edges = {
+        edge.edge_id: Edge(
+            edge_id=edge.edge_id,
+            origin_node_id=edge.origin_node_id,
+            destination_node_id=edge.destination_node_id,
+            mode=TransportMode(edge.mode),
+            distance_km=edge.distance_km,
+            base_lead_time_days=edge.base_lead_time_days,
+            daily_capacity=edge.daily_capacity,
+            unit_transport_cost=edge.unit_transport_cost,
+            reliability=edge.reliability,
+            emergency=edge.emergency,
+        )
+        for edge in network_config.edges
+    }
+    products = {
+        product.product_id: Product(
+            product_id=product.product_id,
+            name=product.name,
+            holding_cost_per_unit_day=product.holding_cost_per_unit_day,
+            backlog_cost_per_unit_day=product.backlog_cost_per_unit_day,
+            late_penalty_per_unit_day=product.late_penalty_per_unit_day,
+        )
+        for product in network_config.products
+    }
+    return NetworkDefinition(nodes=nodes, edges=edges, products=products)
+
+
+def build_initial_state(
+    network_definition: NetworkDefinition, network_config: NetworkConfig
+) -> SimulationState:
+    """Builds the day-0 state: normal network, configured inventory, nothing else.
+
+    Matches CLAUDE.md section 13.1 exactly: the base network is normal, all
+    operational states use defaults, backlog is zero, there are no shipments,
+    costs and service counters are zero, and no shock is active or known.
+    """
+    inventory: dict[str, dict[str, int]] = {
+        node_id: dict.fromkeys(network_definition.products, 0)
+        for node_id in network_definition.nodes
+    }
+    for line in network_config.initial_inventory:
+        inventory[line.node_id][line.product_id] += line.quantity
+
+    backlog: dict[str, dict[str, int]] = {
+        node_id: dict.fromkeys(network_definition.products, 0)
+        for node_id in network_definition.nodes
+    }
+
+    return SimulationState(
+        day=0,
+        network_definition=network_definition,
+        node_operational_state={
+            node_id: OperationalNodeState() for node_id in network_definition.nodes
+        },
+        edge_operational_state={
+            edge_id: OperationalEdgeState() for edge_id in network_definition.edges
+        },
+        inventory=inventory,
+        backlog=backlog,
+        shipments={},
+        costs=CostCounters(),
+        service=ServiceCounters(),
+        daily_edge_used_capacity=dict.fromkeys(network_definition.edges, 0),
+        daily_node_used_processing=dict.fromkeys(network_definition.nodes, 0),
     )
