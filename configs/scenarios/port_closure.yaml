@@ -1,0 +1,19 @@
+# Defines the designed disruption applied after warm-up. The primary port is
+# physically unavailable for seven full days, and both policies receive the
+# same complete information when the closure begins.
+
+schema_version: 1
+scenario_id: primary_port_closure
+description: Complete temporary closure of the primary port.
+
+shocks:
+  - shock_id: close_primary_port
+    shock_type: NODE_CLOSURE
+    target_type: NODE
+    target_id: port_primary
+    physical_start_day: 21
+    physical_end_day: 27
+    information_day: 21
+    capacity_multiplier: 1.0
+    lead_time_multiplier: 1.0
+    cost_multiplier: 1.0

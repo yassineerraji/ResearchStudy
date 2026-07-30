@@ -709,7 +709,7 @@ Configure in `pyproject.toml`:
 - Ruff Python target: `py312`;
 - Mypy strict mode for `src`;
 - Pytest test path: `tests`;
-- Coverage source: `supply_chain_sim`;
+- Coverage source: `supply_chain_simulator`;
 - minimum overall coverage: `90%`;
 - branch coverage enabled.
 
@@ -2030,12 +2030,12 @@ Use `argparse`.
 Commands:
 
 ```bash
-python -m supply_chain_sim.cli validate-config \
+python -m supply_chain_simulator.cli validate-config \
   --config configs/experiments/baseline_comparison.yaml
 ```
 
 ```bash
-python -m supply_chain_sim.cli run \
+python -m supply_chain_simulator.cli run \
   --config configs/experiments/baseline_comparison.yaml
 ```
 

@@ -1,0 +1,54 @@
+# Packaging, dependency, and tool configuration for the Supply-Chain Agent
+# Evaluation project. This file owns package metadata, the runtime and
+# development dependency lists, and the configuration for Ruff, Mypy,
+# Pytest, and coverage. 
+# It does not own any research or simulation behavior itself.
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "supply-chain-agent-evaluation"
+version = "0.1.0"
+description = "A research-grade simulator comparing a classical heuristic and a bounded LLM agent on supply-chain disruption response."
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+authors = [{ name = "Yassine ERRAJI" }]
+
+dependencies = [
+    "networkx>=3.2",
+    "pydantic>=2.6",
+    "PyYAML>=6.0",
+    "openai>=1.30",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "mypy>=1.10",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["supply_chain_simulator"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 90

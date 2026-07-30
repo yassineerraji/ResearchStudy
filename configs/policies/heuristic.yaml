@@ -1,0 +1,10 @@
+# Defines the transparent classical decision rule. It selects the lowest
+# estimated-cost valid action and uses conservative action preferences to
+# break exact ties.
+
+schema_version: 1
+policy_id: heuristic
+policy_type: HEURISTIC
+
+expedite_trigger_lateness_days: 2
+cost_tolerance: 1.0e-9

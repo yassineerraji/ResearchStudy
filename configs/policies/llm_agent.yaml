@@ -1,0 +1,19 @@
+# Defines the bounded LLM decision agent, its approved provider settings,
+# tool-call limit, fallback, and live or replay execution behavior.
+
+schema_version: 1
+policy_id: llm_agent
+policy_type: LLM
+
+provider: OPENAI
+api_key_environment_variable: OPENAI_API_KEY
+model_environment_variable: LLM_MODEL
+execution_mode: LIVE
+temperature: 0.0
+max_tool_calls: 8
+max_output_tokens: 1000
+request_timeout_seconds: 60
+max_retries: 3
+store_provider_response: false
+fallback_policy: HEURISTIC
+replay_trace_path: null

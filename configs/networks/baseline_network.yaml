@@ -1,0 +1,163 @@
+# Defines the normal logistics network, one product, initial inventory,
+# replenishment schedule, demand process, and shared cost parameters used by
+# the baseline experiment. It describes the world before temporary shocks.
+
+schema_version: 1
+network_id: baseline_network
+
+units:
+  quantity: units
+  distance: km
+  time: day
+  currency: EUR
+
+products:
+  - product_id: component_a
+    name: Component A
+    holding_cost_per_unit_day: 0.10
+    backlog_cost_per_unit_day: 3.00
+    late_penalty_per_unit_day: 1.50
+
+nodes:
+  - node_id: supplier_1
+    name: Primary Supplier
+    node_type: SUPPLIER
+    latitude: null
+    longitude: null
+    storage_capacity: 2000
+    processing_capacity: 200
+    source_capacity: 100
+
+  - node_id: port_primary
+    name: Primary Port
+    node_type: PORT
+    latitude: null
+    longitude: null
+    storage_capacity: 2000
+    processing_capacity: 200
+    source_capacity: 0
+
+  - node_id: port_alternative
+    name: Alternative Port
+    node_type: PORT
+    latitude: null
+    longitude: null
+    storage_capacity: 1200
+    processing_capacity: 80
+    source_capacity: 0
+
+  - node_id: hub_1
+    name: Import Hub
+    node_type: HUB
+    latitude: null
+    longitude: null
+    storage_capacity: 2000
+    processing_capacity: 200
+    source_capacity: 0
+
+  - node_id: plant_1
+    name: Manufacturing Plant
+    node_type: PLANT
+    latitude: null
+    longitude: null
+    storage_capacity: 1000
+    processing_capacity: 200
+    source_capacity: 0
+
+edges:
+  - edge_id: supplier_to_primary_port
+    origin_node_id: supplier_1
+    destination_node_id: port_primary
+    mode: ROAD
+    distance_km: 400
+    base_lead_time_days: 2
+    daily_capacity: 100
+    unit_transport_cost: 4.00
+    reliability: 0.97
+    emergency: false
+
+  - edge_id: primary_port_to_hub
+    origin_node_id: port_primary
+    destination_node_id: hub_1
+    mode: SEA
+    distance_km: 6000
+    base_lead_time_days: 10
+    daily_capacity: 200
+    unit_transport_cost: 8.00
+    reliability: 0.94
+    emergency: false
+
+  - edge_id: supplier_to_alternative_port
+    origin_node_id: supplier_1
+    destination_node_id: port_alternative
+    mode: ROAD
+    distance_km: 650
+    base_lead_time_days: 4
+    daily_capacity: 60
+    unit_transport_cost: 7.00
+    reliability: 0.96
+    emergency: false
+
+  - edge_id: alternative_port_to_hub
+    origin_node_id: port_alternative
+    destination_node_id: hub_1
+    mode: SEA
+    distance_km: 6700
+    base_lead_time_days: 12
+    daily_capacity: 60
+    unit_transport_cost: 11.00
+    reliability: 0.93
+    emergency: false
+
+  - edge_id: hub_to_plant
+    origin_node_id: hub_1
+    destination_node_id: plant_1
+    mode: ROAD
+    distance_km: 300
+    base_lead_time_days: 2
+    daily_capacity: 120
+    unit_transport_cost: 3.00
+    reliability: 0.98
+    emergency: false
+
+  - edge_id: supplier_to_plant_air
+    origin_node_id: supplier_1
+    destination_node_id: plant_1
+    mode: AIR
+    distance_km: 6200
+    base_lead_time_days: 2
+    daily_capacity: 40
+    unit_transport_cost: 40.00
+    reliability: 0.99
+    emergency: true
+
+initial_inventory:
+  - node_id: plant_1
+    product_id: component_a
+    quantity: 200
+
+demand_process:
+  destination_node_id: plant_1
+  product_id: component_a
+  distribution: TRUNCATED_NORMAL
+  mean_daily_demand: 40
+  standard_deviation: 5
+  minimum_daily_demand: 25
+  maximum_daily_demand: 55
+
+replenishment_plan:
+  product_id: component_a
+  origin_node_id: supplier_1
+  destination_node_id: plant_1
+  first_release_day: 1
+  release_every_days: 1
+  shipment_quantity: 40
+  due_offset_days: 15
+  initial_route_edge_ids:
+    - supplier_to_primary_port
+    - primary_port_to_hub
+    - hub_to_plant
+
+action_costs:
+  reroute_cost_per_unit: 2.00
+  expedite_premium_per_unit: 10.00

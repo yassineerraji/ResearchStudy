@@ -1,6 +1,12 @@
+# Tells Git which local, machine-generated, or secret files never belong in
+# version control: the virtual environment, Python bytecode caches, tool
+# caches, generated experiment outputs, and the real .env file holding API
+# keys. It does not affect what gets published once a file is committed.
+
 .venv/
 __pycache__/
 *.py[cod]
+*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
