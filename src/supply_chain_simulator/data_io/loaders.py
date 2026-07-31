@@ -5,8 +5,9 @@ and experiment YAML files under configs/ into typed, validated Pydantic
 models, resolves the file paths an experiment references relative to that
 experiment file, and combines everything into one ResolvedConfig. It then
 converts a validated NetworkConfig into the frozen NetworkDefinition (Node,
-Edge, Product) the simulation actually runs on, and builds the day-0
-SimulationState from it. In the full system, this is the place a malformed,
+Edge, Product) the simulation actually runs on, builds the day-0
+SimulationState from it, and converts a ScenarioConfig's shocks into frozen
+Shock domain objects. In the full system, this is the place a malformed,
 incomplete, or internally inconsistent configuration is caught and reported
 before any simulation code runs, and the only place configuration data turns
 into domain objects. It does not perform the deeper graph-reachability
@@ -34,6 +35,7 @@ from pydantic import (
     model_validator,
 )
 
+from supply_chain_simulator.domain.events import Shock, ShockType, TargetType
 from supply_chain_simulator.domain.models import (
     Edge,
     NetworkDefinition,
@@ -581,4 +583,22 @@ def build_initial_state(
         service=ServiceCounters(),
         daily_edge_used_capacity=dict.fromkeys(network_definition.edges, 0),
         daily_node_used_processing=dict.fromkeys(network_definition.nodes, 0),
+    )
+
+
+def build_shocks(scenario_config: ScenarioConfig) -> tuple[Shock, ...]:
+    return tuple(
+        Shock(
+            shock_id=shock.shock_id,
+            shock_type=ShockType(shock.shock_type),
+            target_type=TargetType(shock.target_type),
+            target_id=shock.target_id,
+            physical_start_day=shock.physical_start_day,
+            physical_end_day=shock.physical_end_day,
+            information_day=shock.information_day,
+            capacity_multiplier=shock.capacity_multiplier,
+            lead_time_multiplier=shock.lead_time_multiplier,
+            cost_multiplier=shock.cost_multiplier,
+        )
+        for shock in scenario_config.shocks
     )
