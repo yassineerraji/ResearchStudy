@@ -2,15 +2,16 @@
 
 Inside the simulation package, this module drives CLAUDE.md section 14's
 thirteen-step daily sequence from a start day through a horizon and an
-optional drain phase, using the pure/mutating pieces transition.py provides
-and the cost/route calculations routing.py and costs.py provide. In the full
-system, this is what turns one policy-independent event tape plus one policy
-into one complete, auditable SimulationResult, identically for every policy
-and every branch of a paired comparison — it deep-clones its input and never
-mutates the caller's snapshot. It does not itself decide what a shipment
-should do: a real pluggable Policy is not wired in yet (see the note on
-`run` below), so until Milestone 5/6 land, every triggered shipment is
-resolved to WAIT directly by this module.
+optional drain phase, using the pure/mutating pieces transition.py provides,
+the cost/route calculations routing.py and costs.py provide, and — for each
+shipment a day's triggers select — one observation built by
+decisions/observation.py, resolved through the policy and fallback chain
+policies/base.py and policies/fallback.py provide. In the full system, this
+is what turns one policy-independent event tape plus one policy into one
+complete, auditable SimulationResult, identically for every policy and every
+branch of a paired comparison — it deep-clones its input and never mutates
+the caller's snapshot. It only ever touches a policy through the `Policy`
+protocol, so it never branches on, or even imports, a concrete policy class.
 """
 
 from __future__ import annotations
@@ -18,7 +19,11 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass
 
-from supply_chain_simulator.domain.actions import ActionType, DecisionAction, ReasonCode
+from supply_chain_simulator.decisions.observation import (
+    DecisionObservation,
+    build_observation,
+)
+from supply_chain_simulator.domain.actions import ActionType, DecisionAction
 from supply_chain_simulator.domain.events import DayEvents, EventTape, Shock
 from supply_chain_simulator.domain.models import Route
 from supply_chain_simulator.domain.state import (
@@ -29,6 +34,8 @@ from supply_chain_simulator.domain.state import (
     SimulationResult,
     SimulationState,
 )
+from supply_chain_simulator.policies.base import Policy, make_decision_record
+from supply_chain_simulator.policies.fallback import resolve_action
 from supply_chain_simulator.simulation import transition
 from supply_chain_simulator.simulation.costs import charge_terminal_cost
 from supply_chain_simulator.simulation.routing import (
@@ -49,7 +56,10 @@ class RunIdentity:
 
 
 def _all_resolved(state: SimulationState) -> bool:
-    if any(shipment.status is not ShipmentStatus.DELIVERED for shipment in state.shipments.values()):
+    if any(
+        shipment.status is not ShipmentStatus.DELIVERED
+        for shipment in state.shipments.values()
+    ):
         return False
     return all(
         quantity == 0
@@ -73,13 +83,10 @@ def _cost_snapshot(costs: CostCounters) -> CostCounters:
 class SimulationEngine:
     """Runs a SimulationState through a fixed range of days.
 
-    `run`'s signature is a deliberate subset of CLAUDE.md section 11.9's
-    final form: it omits `policy: Policy`, because `Policy` (policies/base.py)
-    structurally depends on `DecisionObservation` (decisions/observation.py),
-    which is Milestone 5's named scope and does not exist yet. Until then,
-    `decision_enabled=True` resolves every triggered shipment to WAIT
-    directly; `decision_enabled=False` matches warm-up exactly. Milestone
-    5/6 will extend this signature to accept and consult a real policy.
+    `policy`, `fallback_policy`, and `mean_daily_demand` are only required
+    when `decision_enabled=True`; warm-up-style runs
+    (`decision_enabled=False`, matching CLAUDE.md section 13.2) never build
+    an observation or consult a policy, so they may be omitted.
     """
 
     def run(
@@ -94,7 +101,14 @@ class SimulationEngine:
         reroute_cost_per_unit: float,
         expedite_premium_per_unit: float,
         terminal_penalty_days: int,
+        policy: Policy | None = None,
+        fallback_policy: Policy | None = None,
+        mean_daily_demand: float = 0.0,
     ) -> SimulationResult:
+        if decision_enabled and (policy is None or fallback_policy is None):
+            raise ValueError(
+                "policy and fallback_policy are required when decision_enabled is True"
+            )
         state = copy.deepcopy(initial_state)
         events_by_day = {day_events.day: day_events for day_events in event_tape.days}
 
@@ -107,7 +121,9 @@ class SimulationEngine:
         )
         total_released = 0
         delivered_count = sum(
-            1 for shipment in state.shipments.values() if shipment.status is ShipmentStatus.DELIVERED
+            1
+            for shipment in state.shipments.values()
+            if shipment.status is ShipmentStatus.DELIVERED
         )
 
         max_day = horizon_day + drain_days
@@ -122,7 +138,9 @@ class SimulationEngine:
                     f"{start_day}..{max_day})"
                 )
             day_events = events_by_day[day]
-            total_released += sum(event.quantity for event in day_events.shipment_release_events)
+            total_released += sum(
+                event.quantity for event in day_events.shipment_release_events
+            )
 
             metrics, delivered_count = self._process_day(
                 state,
@@ -135,6 +153,9 @@ class SimulationEngine:
                 delivered_count,
                 initial_committed_total,
                 total_released,
+                policy,
+                fallback_policy,
+                mean_daily_demand,
             )
             daily_metrics.append(metrics)
 
@@ -172,6 +193,9 @@ class SimulationEngine:
         previous_delivered_count: int,
         initial_committed_total: int,
         total_released: int,
+        policy: Policy | None,
+        fallback_policy: Policy | None,
+        mean_daily_demand: float,
     ) -> tuple[DailyMetrics, int]:
         # 1. Begin day.
         state.day = day_events.day
@@ -191,13 +215,23 @@ class SimulationEngine:
         transition.release_shipments(state, day_events.shipment_release_events)
 
         # 6. Realize and fulfil demand.
-        demand_result = transition.fulfil_backlog_and_demand(state, day_events.demand_events)
+        demand_result = transition.fulfil_backlog_and_demand(
+            state, day_events.demand_events
+        )
 
-        # 7-10. Build decision set, resolve every trigger to WAIT, apply it.
+        # 7-10. Build decision set, consult the policy, resolve fallback, apply it.
         costs_before = _cost_snapshot(state.costs)
         if decision_enabled:
-            self._resolve_triggered_shipments_to_wait(
-                state, event_tape.shocks, reroute_cost_per_unit, expedite_premium_per_unit
+            assert policy is not None
+            assert fallback_policy is not None
+            self._resolve_triggered_shipments(
+                state,
+                event_tape.shocks,
+                policy,
+                fallback_policy,
+                mean_daily_demand,
+                reroute_cost_per_unit,
+                expedite_premium_per_unit,
             )
 
         # 11. Allocate departures.
@@ -228,32 +262,74 @@ class SimulationEngine:
         )
         return metrics, delivered_count
 
-    def _resolve_triggered_shipments_to_wait(
+    def _resolve_triggered_shipments(
         self,
         state: SimulationState,
         shocks: tuple[Shock, ...],
+        policy: Policy,
+        fallback_policy: Policy,
+        mean_daily_demand: float,
         reroute_cost_per_unit: float,
         expedite_premium_per_unit: float,
     ) -> None:
+        """CLAUDE.md section 14 steps 7-10: build each triggered shipment's
+        observation from this same pre-action state, consult the policy,
+        resolve fallback if it abstains or proposes something invalid, and
+        collect the resulting executed actions for transition.py to apply.
+        """
         triggered = transition.identify_shipments_requiring_decision(state, shocks)
-        decisions: dict[str, tuple[DecisionAction, Route | None]] = {
-            shipment_id: (
-                DecisionAction(
-                    shipment_id=shipment_id,
-                    action_type=ActionType.WAIT,
-                    route_id=None,
-                    reason_code=ReasonCode.INSUFFICIENT_INFORMATION,
-                    rationale="No pluggable policy until Milestone 5/6; engine defaults to WAIT.",
-                ),
-                None,
+        decisions: dict[str, tuple[DecisionAction, Route | None]] = {}
+
+        for shipment_id in triggered:
+            observation = build_observation(
+                state,
+                shipment_id,
+                shocks,
+                mean_daily_demand,
+                reroute_cost_per_unit,
+                expedite_premium_per_unit,
             )
-            for shipment_id in triggered
-        }
+            record = make_decision_record(policy, observation)
+            resolution = resolve_action(
+                record.proposed_action, observation, state, fallback_policy
+            )
+
+            if not resolution.proposal_validation.is_valid:
+                state.service.invalid_action_count += 1
+            if record.proposed_action.action_type is ActionType.ABSTAIN:
+                state.service.abstention_count += 1
+            if resolution.fallback_invoked:
+                state.service.fallback_count += 1
+
+            executed_action = resolution.executed_action
+            route = (
+                self._route_for(observation, executed_action.route_id)
+                if executed_action.route_id is not None
+                else None
+            )
+            decisions[shipment_id] = (executed_action, route)
+
         transition.apply_validated_actions(
             state, decisions, reroute_cost_per_unit, expedite_premium_per_unit
         )
 
-    def _assert_active_shocks_match_day(self, state: SimulationState, shocks: tuple[Shock, ...]) -> None:
+    def _route_for(self, observation: DecisionObservation, route_id: str) -> Route:
+        for option in observation.route_options:
+            if option.route_id == route_id:
+                return Route(
+                    route_id=option.route_id,
+                    edge_ids=option.edge_ids,
+                    node_ids=option.node_ids,
+                    contains_emergency_edge=option.contains_emergency_edge,
+                )
+        raise SimulationInvariantError(
+            f"executed action references route {route_id!r}, which is not one of the "
+            f"observation's approved route options"
+        )
+
+    def _assert_active_shocks_match_day(
+        self, state: SimulationState, shocks: tuple[Shock, ...]
+    ) -> None:
         expected = {
             shock.shock_id
             for shock in shocks
@@ -284,9 +360,19 @@ class SimulationEngine:
                     raise SimulationInvariantError(
                         f"day {state.day}: negative backlog at {node_id}/{product_id}: {quantity}"
                     )
-        for field_name in ("transport", "reroute", "expedite", "holding", "backlog", "late", "terminal"):
+        for field_name in (
+            "transport",
+            "reroute",
+            "expedite",
+            "holding",
+            "backlog",
+            "late",
+            "terminal",
+        ):
             if getattr(state.costs, field_name) < 0:
-                raise SimulationInvariantError(f"day {state.day}: negative cost component {field_name}")
+                raise SimulationInvariantError(
+                    f"day {state.day}: negative cost component {field_name}"
+                )
 
         delivered_count = 0
         for shipment_id, shipment in state.shipments.items():
@@ -303,25 +389,35 @@ class SimulationEngine:
                 self._assert_delivered_contract(state, shipment_id, shipment)
 
         if delivered_count < previous_delivered_count:
-            raise SimulationInvariantError(f"day {state.day}: delivered shipment count decreased")
+            raise SimulationInvariantError(
+                f"day {state.day}: delivered shipment count decreased"
+            )
 
         for edge_id, used in state.daily_edge_used_capacity.items():
             edge = state.network_definition.get_edge(edge_id)
             edge_state = state.edge_operational_state[edge_id]
             if used > get_effective_edge_capacity(edge, edge_state):
-                raise SimulationInvariantError(f"day {state.day}: edge {edge_id} over capacity")
+                raise SimulationInvariantError(
+                    f"day {state.day}: edge {edge_id} over capacity"
+                )
 
         for node_id, used in state.daily_node_used_processing.items():
             node = state.network_definition.get_node(node_id)
             node_state = state.node_operational_state[node_id]
-            effective = int(node.processing_capacity * node_state.processing_capacity_multiplier)
+            effective = int(
+                node.processing_capacity * node_state.processing_capacity_multiplier
+            )
             if used > effective:
-                raise SimulationInvariantError(f"day {state.day}: node {node_id} over processing capacity")
+                raise SimulationInvariantError(
+                    f"day {state.day}: node {node_id} over processing capacity"
+                )
 
         self._assert_product_balance(state, initial_committed_total, total_released)
         return delivered_count
 
-    def _assert_at_node_contract(self, state: SimulationState, shipment_id: str, shipment: Shipment) -> None:
+    def _assert_at_node_contract(
+        self, state: SimulationState, shipment_id: str, shipment: Shipment
+    ) -> None:
         if shipment.current_node_id is None or shipment.current_edge_id is not None:
             raise SimulationInvariantError(
                 f"day {state.day}: shipment {shipment_id} violates AT_NODE field contract"
@@ -369,13 +465,18 @@ class SimulationEngine:
     def _assert_product_balance(
         self, state: SimulationState, initial_committed_total: int, total_released: int
     ) -> None:
-        current_inventory_total = sum(sum(products.values()) for products in state.inventory.values())
+        current_inventory_total = sum(
+            sum(products.values()) for products in state.inventory.values()
+        )
         non_delivered_total = sum(
             shipment.quantity
             for shipment in state.shipments.values()
             if shipment.status is not ShipmentStatus.DELIVERED
         )
-        consumed_total = state.service.same_day_fulfilled_units + state.service.backlog_fulfilled_units
+        consumed_total = (
+            state.service.same_day_fulfilled_units
+            + state.service.backlog_fulfilled_units
+        )
         lhs = initial_committed_total + total_released
         rhs = current_inventory_total + non_delivered_total + consumed_total
         if lhs != rhs:
