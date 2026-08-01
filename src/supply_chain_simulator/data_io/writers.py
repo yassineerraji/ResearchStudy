@@ -4,12 +4,16 @@ Inside the data_io package, this module owns every file CLAUDE.md section 27
 lists inside one `outputs/<experiment_id>__<timestamp>/` directory: the
 manifest and resolved configuration written once, event tapes/run
 metrics/daily metrics/decision traces/LLM interactions appended
-incrementally as each replication's branches finish, and the replications
-table and summary written once at the end. In the full system, this is the
-only place a SimulationResult, a ReplicationComparison, or a decision
-becomes a line of CSV or JSON — experiments/runner.py decides what happened
-and when, this module only decides how it is written. It does not compute
-any metric itself and does not decide what belongs in an experiment.
+incrementally as each replication's branches finish, the replications table
+and summary written once at the end, and `run.log` — a DEBUG-level file
+handler attached only to the `supply_chain_simulator` logger namespace
+(CLAUDE.md section 28), deliberately never to the root logger, so that
+third-party libraries' own DEBUG output (the `openai`/`httpx` SDKs, which
+this project never controls) can never end up in it. In the full system,
+this is the only place a SimulationResult, a ReplicationComparison, or a
+decision becomes a line of CSV or JSON — experiments/runner.py decides what
+happened and when, this module only decides how it is written. It does not
+compute any metric itself and does not decide what belongs in an experiment.
 """
 
 from __future__ import annotations
@@ -17,6 +21,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import logging
 import os
 import platform
 import subprocess
@@ -111,6 +116,8 @@ REPLICATIONS_COLUMNS = (
     "winner",
 )
 
+_PACKAGE_LOGGER_NAME = "supply_chain_simulator"
+
 
 class ExperimentWriter:
     """Owns one experiment's output directory and every file inside it.
@@ -125,6 +132,25 @@ class ExperimentWriter:
     def __init__(self, output_dir: Path) -> None:
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Deliberately does not raise supply_chain_simulator's logger level:
+        # doing so would also lower the effective level seen by the console
+        # handler cli.py's logging.basicConfig(level=INFO) installs on the
+        # root logger, since Python only gates a record once, at the
+        # originating logger. Only this handler's own level controls what
+        # reaches run.log; today that's whatever already clears the
+        # console's INFO gate (cli.py's error-path logging), and it becomes
+        # a true DEBUG file the moment cli.py's setup is deliberately
+        # changed to allow DEBUG records through in the first place.
+        self._package_logger = logging.getLogger(_PACKAGE_LOGGER_NAME)
+        self._log_file_handler = logging.FileHandler(
+            self.output_dir / "run.log", encoding="utf-8"
+        )
+        self._log_file_handler.setLevel(logging.DEBUG)
+        self._log_file_handler.setFormatter(
+            logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+        )
+        self._package_logger.addHandler(self._log_file_handler)
 
         self._event_tape_file = self._open_jsonl("event_tapes.jsonl")
         self._decision_trace_file = self._open_jsonl("decision_traces.jsonl")
@@ -152,6 +178,8 @@ class ExperimentWriter:
         self.close()
 
     def close(self) -> None:
+        self._package_logger.removeHandler(self._log_file_handler)
+        self._log_file_handler.close()
         for handle in (
             self._event_tape_file,
             self._decision_trace_file,

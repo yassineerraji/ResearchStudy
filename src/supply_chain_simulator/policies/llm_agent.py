@@ -54,6 +54,10 @@ cost, or a shock that no tool reported to you.
 EXPEDITE, or ABSTAIN.
 - REROUTE and EXPEDITE must use a route_id that list_route_options or inspect_route actually \
 returned to you. Never invent a route_id.
+- action_type must match that route's contains_emergency_edge flag exactly: choose REROUTE \
+only for a route where contains_emergency_edge is false, and EXPEDITE only for a route where \
+contains_emergency_edge is true. Never submit EXPEDITE for a normal route, and never submit \
+REROUTE for an emergency route.
 - If the information available to you is insufficient to decide with confidence, choose \
 ABSTAIN rather than guessing.
 - You cannot modify the simulation, create shipments, change demand, or repair an unavailable \
@@ -136,12 +140,18 @@ _TOOL_SPECS: tuple[ToolSpec, ...] = (
                 "action_type": {
                     "type": "string",
                     "enum": [action_type.value for action_type in ActionType],
+                    "description": (
+                        "REROUTE requires a route_id whose contains_emergency_edge is "
+                        "false; EXPEDITE requires a route_id whose contains_emergency_edge "
+                        "is true. Never mix these up."
+                    ),
                 },
                 "route_id": {
                     "type": ["string", "null"],
                     "description": (
                         "Required (non-null) for REROUTE/EXPEDITE, using an approved "
-                        "route_id; must be null for WAIT/ABSTAIN."
+                        "route_id whose contains_emergency_edge flag matches action_type; "
+                        "must be null for WAIT/ABSTAIN."
                     ),
                 },
                 "reason_code": {

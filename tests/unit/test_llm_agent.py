@@ -311,3 +311,27 @@ class TestPromptHash:
 
     def test_matches_a_direct_sha256_of_the_prompt_constant(self) -> None:
         assert compute_prompt_hash() == hashlib.sha256(SYSTEM_PROMPT.encode("utf-8")).hexdigest()
+
+
+class TestActionTypeContainsEmergencyEdgeGuidance:
+    """Regression coverage for a real finding from Milestone 9's live smoke
+    test: the model repeatedly submitted EXPEDITE for a normal (non-emergency)
+    route, which decisions/validator.py correctly rejects
+    (EXPEDITE_HAS_NO_EMERGENCY_EDGE) and policies/fallback.py correctly falls
+    back from -- but every such round trip is a wasted decision. The real
+    fix was empirical (confirmed by rerunning the live smoke test), not
+    something a unit test can verify against a real model; these just guard
+    against the guidance silently disappearing in a future edit.
+    """
+
+    def test_system_prompt_binds_action_type_to_contains_emergency_edge(self) -> None:
+        assert "contains_emergency_edge" in SYSTEM_PROMPT
+        assert "EXPEDITE" in SYSTEM_PROMPT
+        assert "REROUTE" in SYSTEM_PROMPT
+
+    def test_submit_action_schema_repeats_the_same_guidance(self) -> None:
+        from supply_chain_simulator.policies.llm_agent import _TOOL_SPECS
+
+        submit_action_spec = next(spec for spec in _TOOL_SPECS if spec.name == "submit_action")
+        action_type_schema = submit_action_spec.parameters_schema["properties"]["action_type"]  # type: ignore[index]
+        assert "contains_emergency_edge" in action_type_schema["description"]  # type: ignore[index]

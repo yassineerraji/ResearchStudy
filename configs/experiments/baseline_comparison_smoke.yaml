@@ -1,0 +1,34 @@
+# A small, cheap, real-API variant of baseline_comparison.yaml for Milestone
+# 9's "small two-replication live experiment" step (CLAUDE.md section 32).
+# Same network, scenario, and policies as the real baseline; only
+# horizon_days, drain_days, and replications are reduced, so it is fast and
+# inexpensive to run against a real OpenAI key while still exercising the
+# actual port-closure disruption (days 21-27) end to end. Not the canonical
+# baseline experiment -- configs/experiments/baseline_comparison.yaml is.
+
+schema_version: 1
+experiment_id: baseline_port_closure_comparison_smoke
+
+network_config: ../networks/baseline_network.yaml
+scenario_config: ../scenarios/port_closure.yaml
+
+policy_configs:
+  heuristic: ../policies/heuristic.yaml
+  llm_agent: ../policies/llm_agent.yaml
+
+warmup_days: 20
+horizon_days: 30
+drain_days: 15
+terminal_penalty_days: 30
+
+replications: 2
+base_seed: 1042
+
+counterfactual_mode: POLICY_SPECIFIC
+fail_fast: true
+
+output_root: ../../outputs
+write_event_tapes: true
+write_daily_metrics: true
+write_decision_traces: true
+write_llm_interactions: true
