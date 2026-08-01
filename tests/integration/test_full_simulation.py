@@ -48,6 +48,14 @@ from supply_chain_simulator.data_io.loaders import (
 )
 from supply_chain_simulator.decisions.observation import DecisionObservation
 from supply_chain_simulator.domain.actions import ActionType, DecisionAction, ReasonCode
+from supply_chain_simulator.domain.events import (
+    DayEvents,
+    EventTape,
+    ShipmentReleaseEvent,
+    Shock,
+    ShockType,
+    TargetType,
+)
 from supply_chain_simulator.domain.models import NetworkDefinition
 from supply_chain_simulator.domain.state import (
     ShipmentStatus,
@@ -401,6 +409,89 @@ class TestFullSimulationHeuristicPolicy:
                 expedite_premium_per_unit=EXPEDITE_PREMIUM_PER_UNIT,
                 terminal_penalty_days=TERMINAL_PENALTY_DAYS,
             )
+
+
+class TestObservationsOnlyRevealKnownShocks:
+    """Regression test for the known_shock_ids filtering fix.
+
+    Builds a one-day event tape by hand: a shock targets hub_to_plant (on
+    s001's route) but its information_day is day 5, while s001's due_day is
+    set to its own release day so a decision is triggered on day 1 purely by
+    the lateness trigger (CLAUDE.md section 19 trigger 3) -- independent of
+    the shock. Before the fix, engine.py handed every shock in the event
+    tape to build_observation regardless of state.known_shock_ids, so the
+    day-1 observation would have leaked the shock's existence four days
+    before policies are supposed to know about it (CLAUDE.md section 20).
+    """
+
+    def _run(self) -> list[DecisionTraceEntry]:
+        _, network_definition, initial_state = _build_day_zero()
+
+        future_shock = Shock(
+            shock_id="future_leak_shock",
+            shock_type=ShockType.EDGE_CLOSURE,
+            target_type=TargetType.EDGE,
+            target_id="hub_to_plant",
+            physical_start_day=5,
+            physical_end_day=6,
+            information_day=5,
+        )
+        release_event = ShipmentReleaseEvent(
+            day=1,
+            shipment_id="shipment_001_001",
+            product_id="widget",
+            quantity=5,
+            origin_node_id="supplier_1",
+            destination_node_id="plant_1",
+            due_day=1,  # already "due" on release day: forces the lateness trigger
+            initial_route_edge_ids=("supplier_to_hub", "hub_to_plant"),
+        )
+        day_one = DayEvents(
+            day=1,
+            demand_events=(),
+            shipment_release_events=(release_event,),
+            edge_extra_delay_days=dict.fromkeys(network_definition.edges, 0),
+            newly_known_shock_ids=(),  # information_day is 5, not 1
+        )
+        tape = EventTape(
+            scenario_id="future_leak_scenario",
+            replication=1,
+            seed=1,
+            days=(day_one,),
+            shocks=(future_shock,),
+        )
+
+        sink: list[DecisionTraceEntry] = []
+        SimulationEngine().run(
+            initial_state=initial_state,
+            event_tape=tape,
+            start_day=1,
+            horizon_day=1,
+            drain_days=0,
+            decision_enabled=True,
+            run_identity=_run_identity("DISRUPTED"),
+            reroute_cost_per_unit=REROUTE_COST_PER_UNIT,
+            expedite_premium_per_unit=EXPEDITE_PREMIUM_PER_UNIT,
+            terminal_penalty_days=TERMINAL_PENALTY_DAYS,
+            policy=HeuristicPolicy(
+                expedite_trigger_lateness_days=2, cost_tolerance=1e-9
+            ),
+            fallback_policy=WaitFallbackPolicy(),
+            mean_daily_demand=5.0,
+            decision_trace_sink=sink,
+        )
+        return sink
+
+    def test_decision_is_triggered_by_lateness_not_the_shock(self) -> None:
+        sink = self._run()
+        assert [entry.shipment_id for entry in sink] == ["shipment_001_001"]
+
+    def test_future_shock_is_absent_from_the_day_one_observation(self) -> None:
+        sink = self._run()
+        observation = sink[0].observation
+        shock_ids = {shock.shock_id for shock in observation.relevant_shocks}
+        assert "future_leak_shock" not in shock_ids
+        assert observation.relevant_shocks == ()
 
 
 class _AbstainingPolicy:

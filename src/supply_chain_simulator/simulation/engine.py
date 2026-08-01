@@ -260,9 +260,12 @@ class SimulationEngine:
         if decision_enabled:
             assert policy is not None
             assert fallback_policy is not None
+            known_shocks = tuple(
+                shock for shock in event_tape.shocks if shock.shock_id in state.known_shock_ids
+            )
             self._resolve_triggered_shipments(
                 state,
-                event_tape.shocks,
+                known_shocks,
                 policy,
                 fallback_policy,
                 mean_daily_demand,
@@ -303,7 +306,7 @@ class SimulationEngine:
     def _resolve_triggered_shipments(
         self,
         state: SimulationState,
-        shocks: tuple[Shock, ...],
+        known_shocks: tuple[Shock, ...],
         policy: Policy,
         fallback_policy: Policy,
         mean_daily_demand: float,
@@ -316,15 +319,23 @@ class SimulationEngine:
         observation from this same pre-action state, consult the policy,
         resolve fallback if it abstains or proposes something invalid, and
         collect the resulting executed actions for transition.py to apply.
+
+        `known_shocks` must already be restricted to shocks in
+        `state.known_shock_ids` (CLAUDE.md section 20) — the caller in
+        `_process_day` does this filtering, since this is the one path that
+        feeds shock information to policy-facing code. `apply_shock_operational_state`
+        and `_assert_active_shocks_match_day` intentionally still use the
+        event tape's full, unfiltered shock list: physical effects apply
+        regardless of whether a shock has been revealed yet.
         """
-        triggered = transition.identify_shipments_requiring_decision(state, shocks)
+        triggered = transition.identify_shipments_requiring_decision(state, known_shocks)
         decisions: dict[str, tuple[DecisionAction, Route | None]] = {}
 
         for shipment_id in triggered:
             observation = build_observation(
                 state,
                 shipment_id,
-                shocks,
+                known_shocks,
                 mean_daily_demand,
                 reroute_cost_per_unit,
                 expedite_premium_per_unit,
