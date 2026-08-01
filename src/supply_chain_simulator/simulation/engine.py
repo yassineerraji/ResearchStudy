@@ -16,7 +16,14 @@ When given a `decision_trace_sink`, it also appends one `DecisionTraceEntry`
 per shipment decision, which experiments/runner.py and data_io/writers.py
 use to write CLAUDE.md section 27.5's decision_traces.jsonl — a side channel
 rather than a second return value, so `run`'s return type stays exactly
-`SimulationResult`.
+`SimulationResult`. Likewise, a `llm_interaction_sink` collects one
+`LLMInteractionResult` per decision whose policy exposed one, for section
+27.6's llm_interactions.jsonl. Before the day loop starts, `run` also calls
+`configure_run_context(run_identity)` on `policy` and `fallback_policy` if
+either defines it — both this and `last_interaction` (read by
+policies/base.py's `make_decision_record`) are duck-typed, opt-in hooks that
+only policies/llm_agent.py's `LLMAgentPolicy` defines, so this module never
+imports it and never branches on a concrete policy type.
 """
 
 from __future__ import annotations
@@ -44,6 +51,7 @@ from supply_chain_simulator.domain.state import (
     SimulationResult,
     SimulationState,
 )
+from supply_chain_simulator.integrations.llm_client import LLMInteractionResult
 from supply_chain_simulator.policies.base import Policy, make_decision_record
 from supply_chain_simulator.policies.fallback import resolve_action
 from supply_chain_simulator.simulation import transition
@@ -138,11 +146,17 @@ class SimulationEngine:
         fallback_policy: Policy | None = None,
         mean_daily_demand: float = 0.0,
         decision_trace_sink: list[DecisionTraceEntry] | None = None,
+        llm_interaction_sink: list[LLMInteractionResult] | None = None,
     ) -> SimulationResult:
         if decision_enabled and (policy is None or fallback_policy is None):
             raise ValueError(
                 "policy and fallback_policy are required when decision_enabled is True"
             )
+        for maybe_llm_policy in (policy, fallback_policy):
+            configure_run_context = getattr(maybe_llm_policy, "configure_run_context", None)
+            if configure_run_context is not None:
+                configure_run_context(run_identity)
+
         state = copy.deepcopy(initial_state)
         events_by_day = {day_events.day: day_events for day_events in event_tape.days}
 
@@ -191,6 +205,7 @@ class SimulationEngine:
                 fallback_policy,
                 mean_daily_demand,
                 decision_trace_sink,
+                llm_interaction_sink,
             )
             daily_metrics.append(metrics)
 
@@ -232,6 +247,7 @@ class SimulationEngine:
         fallback_policy: Policy | None,
         mean_daily_demand: float,
         decision_trace_sink: list[DecisionTraceEntry] | None,
+        llm_interaction_sink: list[LLMInteractionResult] | None,
     ) -> tuple[DailyMetrics, int]:
         # 1. Begin day.
         state.day = day_events.day
@@ -273,6 +289,7 @@ class SimulationEngine:
                 expedite_premium_per_unit,
                 run_identity,
                 decision_trace_sink,
+                llm_interaction_sink,
             )
 
         # 11. Allocate departures.
@@ -314,6 +331,7 @@ class SimulationEngine:
         expedite_premium_per_unit: float,
         run_identity: RunIdentity,
         decision_trace_sink: list[DecisionTraceEntry] | None,
+        llm_interaction_sink: list[LLMInteractionResult] | None,
     ) -> None:
         """CLAUDE.md section 14 steps 7-10: build each triggered shipment's
         observation from this same pre-action state, consult the policy,
@@ -341,6 +359,8 @@ class SimulationEngine:
                 expedite_premium_per_unit,
             )
             record = make_decision_record(policy, observation)
+            if llm_interaction_sink is not None and record.llm_interaction is not None:
+                llm_interaction_sink.append(record.llm_interaction)
             resolution = resolve_action(
                 record.proposed_action, observation, state, fallback_policy
             )

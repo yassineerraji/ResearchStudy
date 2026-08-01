@@ -6,17 +6,19 @@ success, 1 unexpected error, 2 configuration error, 3 simulation invariant
 error, 4 LLM integration error). In the full system, it is the only place
 that turns a validated ResolvedConfig into concrete Policy objects and wires
 them into an ExperimentRunner and ExperimentWriter — it implements no
-business logic of its own. `run` currently always raises LLMIntegrationError
-before starting: policies/llm_agent.py (Milestone 8) does not exist yet, so
-there is no real LLM policy to build from a config's llm_agent section.
-`validate-config` is unaffected, since it never needs to instantiate a
-policy.
+business logic of its own. `_build_comparison_policy` reads the LLM
+credentials/model from the environment variables the config names (never
+logging their values), builds a live `OpenAIResponsesClient` or a
+`ReplayLLMClient` per `execution_mode`, and wraps it in `LLMAgentPolicy` with
+its configured fallback. `validate-config` never needs any of this, since it
+never instantiates a policy.
 """
 
 from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -24,15 +26,29 @@ from pathlib import Path
 
 from supply_chain_simulator.data_io.loaders import (
     ConfigurationError,
+    LLMPolicyConfig,
     ResolvedConfig,
     resolve_config,
 )
 from supply_chain_simulator.data_io.writers import ExperimentWriter
 from supply_chain_simulator.experiments.metrics import ReplicationComparison
 from supply_chain_simulator.experiments.runner import ExperimentRunner
+from supply_chain_simulator.integrations.llm_client import (
+    LLMClient,
+    LLMIntegrationError,
+    OpenAIResponsesClient,
+    ReplayLLMClient,
+)
 from supply_chain_simulator.policies.base import Policy
-from supply_chain_simulator.policies.fallback import WaitFallbackPolicy
+from supply_chain_simulator.policies.fallback import (
+    HeuristicFallbackPolicy,
+    WaitFallbackPolicy,
+)
 from supply_chain_simulator.policies.heuristic import HeuristicPolicy
+from supply_chain_simulator.policies.llm_agent import (
+    LLMAgentPolicy,
+    compute_prompt_hash,
+)
 from supply_chain_simulator.simulation.transition import SimulationInvariantError
 
 logger = logging.getLogger(__name__)
@@ -42,10 +58,6 @@ EXIT_UNEXPECTED_ERROR = 1
 EXIT_CONFIGURATION_ERROR = 2
 EXIT_SIMULATION_INVARIANT_ERROR = 3
 EXIT_LLM_INTEGRATION_ERROR = 4
-
-
-class LLMIntegrationError(Exception):
-    """Raised when the configured LLM policy cannot be built or reached."""
 
 
 def _repo_root() -> Path:
@@ -74,13 +86,78 @@ def _validate_config(config_path: Path, repo_root: Path) -> None:
     )
 
 
-def _build_comparison_policy(resolved_config: ResolvedConfig) -> tuple[Policy, Policy]:
-    raise LLMIntegrationError(
-        "the LLM agent policy is not implemented yet (Milestone 8); cannot build "
-        f"the configured llm_agent policy from {resolved_config.llm_config_path}. "
-        "Construct an ExperimentRunner directly with an injected Policy to run a "
-        "heuristic-versus-fake-policy experiment in the meantime."
+def _required_env_var(variable_name: str, purpose: str) -> str:
+    value = os.environ.get(variable_name)
+    if not value:
+        raise LLMIntegrationError(
+            f"environment variable {variable_name!r} is not set; required to {purpose}"
+        )
+    return value
+
+
+def _resolve_replay_trace_path(
+    llm_config: LLMPolicyConfig, resolved_config: ResolvedConfig, repo_root: Path
+) -> Path:
+    replay_trace_path = llm_config.replay_trace_path
+    if not replay_trace_path:
+        raise LLMIntegrationError(
+            "execution_mode is REPLAY but replay_trace_path is not set "
+            "(data_io/loaders.py should already have rejected this configuration)"
+        )
+    experiment_dir = resolved_config.experiment_config_path.parent
+    resolved = (experiment_dir / replay_trace_path).resolve()
+    if not resolved.is_relative_to(repo_root):
+        raise LLMIntegrationError(
+            f"replay_trace_path {replay_trace_path!r} escapes the repository root {repo_root}"
+        )
+    if not resolved.is_file():
+        raise LLMIntegrationError(f"replay trace file does not exist: {resolved}")
+    return resolved
+
+
+def _build_comparison_policy(
+    resolved_config: ResolvedConfig, repo_root: Path
+) -> tuple[Policy, Policy]:
+    llm_config = resolved_config.llm_policy
+    model = os.environ.get(llm_config.model_environment_variable) or ""
+
+    client: LLMClient
+    if llm_config.execution_mode == "LIVE":
+        model = _required_env_var(
+            llm_config.model_environment_variable, "build a LIVE LLM policy"
+        )
+        api_key = _required_env_var(
+            llm_config.api_key_environment_variable, "build a LIVE LLM policy"
+        )
+        client = OpenAIResponsesClient(api_key=api_key)
+    else:
+        replay_trace_path = _resolve_replay_trace_path(llm_config, resolved_config, repo_root)
+        client = ReplayLLMClient(replay_trace_path)
+
+    comparison_policy: Policy = LLMAgentPolicy(
+        client=client,
+        model=model,
+        temperature=llm_config.temperature,
+        max_tool_calls=llm_config.max_tool_calls,
+        max_output_tokens=llm_config.max_output_tokens,
+        request_timeout_seconds=llm_config.request_timeout_seconds,
+        max_retries=llm_config.max_retries,
     )
+
+    comparison_fallback_policy: Policy
+    if llm_config.fallback_policy == "HEURISTIC":
+        comparison_fallback_policy = HeuristicFallbackPolicy(
+            HeuristicPolicy(
+                expedite_trigger_lateness_days=(
+                    resolved_config.heuristic_policy.expedite_trigger_lateness_days
+                ),
+                cost_tolerance=resolved_config.heuristic_policy.cost_tolerance,
+            )
+        )
+    else:
+        comparison_fallback_policy = WaitFallbackPolicy()
+
+    return comparison_policy, comparison_fallback_policy
 
 
 def _run_experiment(config_path: Path, repo_root: Path) -> None:
@@ -92,7 +169,7 @@ def _run_experiment(config_path: Path, repo_root: Path) -> None:
         cost_tolerance=resolved_config.heuristic_policy.cost_tolerance,
     )
     comparison_policy, comparison_fallback_policy = _build_comparison_policy(
-        resolved_config
+        resolved_config, repo_root
     )
 
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
@@ -116,7 +193,10 @@ def _run_experiment(config_path: Path, repo_root: Path) -> None:
     )
     with ExperimentWriter(output_dir) as writer:
         result = runner.run(
-            resolved_config, writer, on_replication_complete=_print_progress
+            resolved_config,
+            writer,
+            llm_prompt_sha256=compute_prompt_hash(),
+            on_replication_complete=_print_progress,
         )
 
     print(f"Output written to: {output_dir}")

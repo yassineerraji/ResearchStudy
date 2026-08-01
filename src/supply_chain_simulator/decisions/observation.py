@@ -255,14 +255,14 @@ def observation_to_canonical_dict(
     return {
         "observation_id": observation.observation_id,
         "day": observation.day,
-        "shipment": _shipment_context_to_dict(observation.shipment),
-        "destination": _destination_context_to_dict(observation.destination),
+        "shipment": shipment_context_to_dict(observation.shipment),
+        "destination": destination_context_to_dict(observation.destination),
         "relevant_shocks": [
-            _shock_context_to_dict(shock) for shock in observation.relevant_shocks
+            shock_context_to_dict(shock) for shock in observation.relevant_shocks
         ],
-        "current_plan": _route_option_to_dict(observation.current_plan),
+        "current_plan": route_option_to_dict(observation.current_plan),
         "route_options": [
-            _route_option_to_dict(option) for option in observation.route_options
+            route_option_to_dict(option) for option in observation.route_options
         ],
         "allowed_actions": [action.value for action in observation.allowed_actions],
     }
@@ -278,7 +278,7 @@ def compute_observation_hash(observation: DecisionObservation) -> str:
     return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
 
 
-def _shipment_context_to_dict(context: ShipmentContext) -> dict[str, object]:
+def shipment_context_to_dict(context: ShipmentContext) -> dict[str, object]:
     return {
         "shipment_id": context.shipment_id,
         "product_id": context.product_id,
@@ -293,7 +293,7 @@ def _shipment_context_to_dict(context: ShipmentContext) -> dict[str, object]:
     }
 
 
-def _destination_context_to_dict(context: DestinationContext) -> dict[str, object]:
+def destination_context_to_dict(context: DestinationContext) -> dict[str, object]:
     return {
         "inventory_on_hand": context.inventory_on_hand,
         "backlog_units": context.backlog_units,
@@ -302,7 +302,7 @@ def _destination_context_to_dict(context: DestinationContext) -> dict[str, objec
     }
 
 
-def _shock_context_to_dict(context: ShockContext) -> dict[str, object]:
+def shock_context_to_dict(context: ShockContext) -> dict[str, object]:
     return {
         "shock_id": context.shock_id,
         "shock_type": context.shock_type.value,
@@ -314,7 +314,7 @@ def _shock_context_to_dict(context: ShockContext) -> dict[str, object]:
     }
 
 
-def _route_option_to_dict(option: RouteOption) -> dict[str, object]:
+def route_option_to_dict(option: RouteOption) -> dict[str, object]:
     return {
         "route_id": option.route_id,
         "edge_ids": list(option.edge_ids),

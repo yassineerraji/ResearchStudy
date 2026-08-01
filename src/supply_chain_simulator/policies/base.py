@@ -10,6 +10,14 @@ simulation/engine.py invoke any policy identically and lets
 experiments/runner.py measure and compare them fairly. It does not validate,
 apply, or fall back on an action — those are decisions/validator.py's and
 policies/fallback.py's jobs.
+
+`make_decision_record` also reads an optional `last_interaction` attribute
+off the policy after calling `decide()`, via `getattr(..., None)` rather than
+an `isinstance` check. Only `policies/llm_agent.py`'s `LLMAgentPolicy` sets
+this; every other policy simply doesn't define it, so the read is a no-op for
+them. This is how `LLMInteractionResult` (CLAUDE.md section 27.6's
+llm_interactions.jsonl) reaches simulation/engine.py without engine.py or
+this module ever branching on a concrete policy type.
 """
 
 from __future__ import annotations
@@ -20,6 +28,7 @@ from typing import Protocol
 
 from supply_chain_simulator.decisions.observation import DecisionObservation
 from supply_chain_simulator.domain.actions import DecisionAction
+from supply_chain_simulator.integrations.llm_client import LLMInteractionResult
 
 
 class Policy(Protocol):
@@ -37,6 +46,7 @@ class PolicyDecisionRecord:
     observation_id: str
     proposed_action: DecisionAction
     decision_latency_ms: float
+    llm_interaction: LLMInteractionResult | None = None
 
 
 def make_decision_record(
@@ -51,4 +61,5 @@ def make_decision_record(
         observation_id=observation.observation_id,
         proposed_action=action,
         decision_latency_ms=elapsed_ms,
+        llm_interaction=getattr(policy, "last_interaction", None),
     )

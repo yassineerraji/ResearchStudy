@@ -43,6 +43,10 @@ from supply_chain_simulator.experiments.metrics import (
     compute_run_metrics,
     summarize_experiment,
 )
+from supply_chain_simulator.integrations.llm_client import (
+    LLMInteractionResult,
+    interaction_to_dict,
+)
 from supply_chain_simulator.policies.base import Policy
 from supply_chain_simulator.simulation.engine import (
     DecisionTraceEntry,
@@ -218,6 +222,7 @@ class ExperimentRunner:
                     run_kind=run_kind,
                 )
                 decision_trace_sink: list[DecisionTraceEntry] = []
+                llm_interaction_sink: list[LLMInteractionResult] = []
                 result = self._engine.run(
                     initial_state=snapshot,
                     event_tape=event_tape,
@@ -233,6 +238,7 @@ class ExperimentRunner:
                     fallback_policy=fallback_policy,
                     mean_daily_demand=mean_daily_demand,
                     decision_trace_sink=decision_trace_sink,
+                    llm_interaction_sink=llm_interaction_sink,
                 )
 
                 run_metrics = compute_run_metrics(
@@ -253,6 +259,14 @@ class ExperimentRunner:
                     writer.append_daily_metrics(result.daily_metrics)
                 if experiment.write_decision_traces:
                     writer.append_decision_traces(decision_trace_sink)
+                if experiment.write_llm_interactions and llm_interaction_sink:
+                    prompt_hash = llm_prompt_sha256 or ""
+                    writer.append_llm_interactions(
+                        [
+                            interaction_to_dict(interaction, prompt_hash)
+                            for interaction in llm_interaction_sink
+                        ]
+                    )
 
                 branch_costs[(policy_name, run_kind)] = run_metrics.total_cost
                 run_metrics_records.append((policy_name, run_kind, run_metrics))
