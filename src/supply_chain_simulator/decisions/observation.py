@@ -14,6 +14,8 @@ action and never exposes or mutates the mutable SimulationState itself.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 
 from supply_chain_simulator.domain.actions import ActionType
@@ -245,10 +247,10 @@ def observation_to_canonical_dict(
 ) -> dict[str, object]:
     """Converts an observation into a plain, JSON-serializable dict.
 
-    Milestone 8's LLM policy will feed this through `json.dumps(sort_keys=True)`
-    and SHA-256 to compute a decision_key's observation_hash (CLAUDE.md section
-    23.1); building the canonical shape here keeps it next to the dataclasses
-    it mirrors.
+    `compute_observation_hash`, below, feeds this through
+    `json.dumps(sort_keys=True)` and SHA-256 to compute a decision_key's
+    observation_hash (CLAUDE.md section 23.1); building the canonical shape
+    here keeps it next to the dataclasses it mirrors.
     """
     return {
         "observation_id": observation.observation_id,
@@ -264,6 +266,16 @@ def observation_to_canonical_dict(
         ],
         "allowed_actions": [action.value for action in observation.allowed_actions],
     }
+
+
+def compute_observation_hash(observation: DecisionObservation) -> str:
+    """SHA-256 of the observation's canonical JSON, per CLAUDE.md section 23.1."""
+    canonical_json = json.dumps(
+        observation_to_canonical_dict(observation),
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
 
 
 def _shipment_context_to_dict(context: ShipmentContext) -> dict[str, object]:

@@ -61,7 +61,11 @@ from supply_chain_simulator.experiments.event_tape import (
 from supply_chain_simulator.policies.base import Policy
 from supply_chain_simulator.policies.fallback import WaitFallbackPolicy
 from supply_chain_simulator.policies.heuristic import HeuristicPolicy
-from supply_chain_simulator.simulation.engine import RunIdentity, SimulationEngine
+from supply_chain_simulator.simulation.engine import (
+    DecisionTraceEntry,
+    RunIdentity,
+    SimulationEngine,
+)
 from supply_chain_simulator.simulation.transition import SimulationInvariantError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -326,6 +330,50 @@ class TestFullSimulationHeuristicPolicy:
         assert s003.status is ShipmentStatus.IN_TRANSIT
         assert s003.edge_entry_day == 5
         assert s003.edge_arrival_day == 6
+
+    def test_decision_trace_sink_records_both_wait_decisions(self) -> None:
+        network_config, network_definition, initial_state = _build_day_zero()
+        scenario_config = load_scenario_config(TINY_SCENARIO_CONFIG)
+        disrupted_tape = build_disrupted_event_tape(
+            network_definition=network_definition,
+            demand_process=network_config.demand_process,
+            replenishment_plan=network_config.replenishment_plan,
+            scenario_config=scenario_config,
+            replication=1,
+            base_seed=42,
+            horizon_days=HORIZON_DAYS,
+            drain_days=DRAIN_DAYS,
+        )
+        sink: list[DecisionTraceEntry] = []
+
+        SimulationEngine().run(
+            initial_state=initial_state,
+            event_tape=disrupted_tape,
+            start_day=1,
+            horizon_day=HORIZON_DAYS,
+            drain_days=DRAIN_DAYS,
+            decision_enabled=True,
+            run_identity=_run_identity("DISRUPTED"),
+            reroute_cost_per_unit=REROUTE_COST_PER_UNIT,
+            expedite_premium_per_unit=EXPEDITE_PREMIUM_PER_UNIT,
+            terminal_penalty_days=TERMINAL_PENALTY_DAYS,
+            policy=HeuristicPolicy(
+                expedite_trigger_lateness_days=2, cost_tolerance=1e-9
+            ),
+            fallback_policy=WaitFallbackPolicy(),
+            mean_daily_demand=network_config.demand_process.mean_daily_demand,
+            decision_trace_sink=sink,
+        )
+
+        assert [entry.day for entry in sink] == [3, 4]
+        assert all(entry.shipment_id == "shipment_003_001" for entry in sink)
+        assert all(
+            entry.executed_action.action_type is ActionType.WAIT for entry in sink
+        )
+        assert all(entry.fallback_invoked is False for entry in sink)
+        assert all(entry.proposal_validation.is_valid for entry in sink)
+        assert all(len(entry.observation_hash) == 64 for entry in sink)
+        assert all(entry.decision_latency_ms >= 0.0 for entry in sink)
 
     def test_missing_policy_with_decisions_enabled_raises(self) -> None:
         network_config, network_definition, initial_state = _build_day_zero()

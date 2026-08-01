@@ -27,6 +27,7 @@ from supply_chain_simulator.decisions.observation import (
     RouteOption,
     ShipmentContext,
     build_observation,
+    compute_observation_hash,
     observation_to_canonical_dict,
 )
 from supply_chain_simulator.decisions.validator import validate_action
@@ -357,6 +358,20 @@ class TestBuildObservation:
         ]
         assert len(decoded["route_options"]) == len(observation.route_options)
         assert decoded["relevant_shocks"][0]["shock_id"] == "s"
+
+    def test_observation_hash_is_deterministic_and_sensitive_to_content(self) -> None:
+        state = _tiny_state(day=1)
+        state.shipments["s1"] = _shipment(shipment_id="s1")
+        observation = _observation(state, "s1")
+        first = compute_observation_hash(observation)
+        second = compute_observation_hash(observation)
+        assert first == second
+        assert len(first) == 64  # hex-encoded SHA-256
+
+        other_state = _tiny_state(day=2)
+        other_state.shipments["s1"] = _shipment(shipment_id="s1")
+        other_observation = _observation(other_state, "s1")
+        assert compute_observation_hash(other_observation) != first
 
 
 class TestValidateActionValidCases:

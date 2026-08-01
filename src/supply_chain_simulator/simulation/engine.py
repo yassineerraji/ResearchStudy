@@ -12,6 +12,11 @@ complete, auditable SimulationResult, identically for every policy and every
 branch of a paired comparison — it deep-clones its input and never mutates
 the caller's snapshot. It only ever touches a policy through the `Policy`
 protocol, so it never branches on, or even imports, a concrete policy class.
+When given a `decision_trace_sink`, it also appends one `DecisionTraceEntry`
+per shipment decision, which experiments/runner.py and data_io/writers.py
+use to write CLAUDE.md section 27.5's decision_traces.jsonl — a side channel
+rather than a second return value, so `run`'s return type stays exactly
+`SimulationResult`.
 """
 
 from __future__ import annotations
@@ -22,8 +27,13 @@ from dataclasses import dataclass
 from supply_chain_simulator.decisions.observation import (
     DecisionObservation,
     build_observation,
+    compute_observation_hash,
 )
-from supply_chain_simulator.domain.actions import ActionType, DecisionAction
+from supply_chain_simulator.domain.actions import (
+    ActionType,
+    DecisionAction,
+    ValidationResult,
+)
 from supply_chain_simulator.domain.events import DayEvents, EventTape, Shock
 from supply_chain_simulator.domain.models import Route
 from supply_chain_simulator.domain.state import (
@@ -53,6 +63,29 @@ class RunIdentity:
     replication: int
     policy_name: str
     run_kind: str
+
+
+@dataclass(frozen=True, slots=True)
+class DecisionTraceEntry:
+    """One shipment's fully-resolved decision, for CLAUDE.md section 27.5's
+    decision_traces.jsonl. `decision_key` there is the tuple (experiment_id,
+    scenario_id, replication, run_kind, day, shipment_id, observation_hash)
+    per section 23.1; this entry carries `run_identity` and `day` instead of
+    a pre-joined key so data_io/writers.py can format it however it needs.
+    """
+
+    run_identity: RunIdentity
+    day: int
+    shipment_id: str
+    observation: DecisionObservation
+    observation_hash: str
+    proposed_action: DecisionAction
+    proposal_validation: ValidationResult
+    fallback_invoked: bool
+    fallback_action: DecisionAction | None
+    fallback_validation: ValidationResult | None
+    executed_action: DecisionAction
+    decision_latency_ms: float
 
 
 def _all_resolved(state: SimulationState) -> bool:
@@ -104,6 +137,7 @@ class SimulationEngine:
         policy: Policy | None = None,
         fallback_policy: Policy | None = None,
         mean_daily_demand: float = 0.0,
+        decision_trace_sink: list[DecisionTraceEntry] | None = None,
     ) -> SimulationResult:
         if decision_enabled and (policy is None or fallback_policy is None):
             raise ValueError(
@@ -156,6 +190,7 @@ class SimulationEngine:
                 policy,
                 fallback_policy,
                 mean_daily_demand,
+                decision_trace_sink,
             )
             daily_metrics.append(metrics)
 
@@ -196,6 +231,7 @@ class SimulationEngine:
         policy: Policy | None,
         fallback_policy: Policy | None,
         mean_daily_demand: float,
+        decision_trace_sink: list[DecisionTraceEntry] | None,
     ) -> tuple[DailyMetrics, int]:
         # 1. Begin day.
         state.day = day_events.day
@@ -232,6 +268,8 @@ class SimulationEngine:
                 mean_daily_demand,
                 reroute_cost_per_unit,
                 expedite_premium_per_unit,
+                run_identity,
+                decision_trace_sink,
             )
 
         # 11. Allocate departures.
@@ -271,6 +309,8 @@ class SimulationEngine:
         mean_daily_demand: float,
         reroute_cost_per_unit: float,
         expedite_premium_per_unit: float,
+        run_identity: RunIdentity,
+        decision_trace_sink: list[DecisionTraceEntry] | None,
     ) -> None:
         """CLAUDE.md section 14 steps 7-10: build each triggered shipment's
         observation from this same pre-action state, consult the policy,
@@ -300,6 +340,24 @@ class SimulationEngine:
                 state.service.abstention_count += 1
             if resolution.fallback_invoked:
                 state.service.fallback_count += 1
+
+            if decision_trace_sink is not None:
+                decision_trace_sink.append(
+                    DecisionTraceEntry(
+                        run_identity=run_identity,
+                        day=state.day,
+                        shipment_id=shipment_id,
+                        observation=observation,
+                        observation_hash=compute_observation_hash(observation),
+                        proposed_action=record.proposed_action,
+                        proposal_validation=resolution.proposal_validation,
+                        fallback_invoked=resolution.fallback_invoked,
+                        fallback_action=resolution.fallback_action,
+                        fallback_validation=resolution.fallback_validation,
+                        executed_action=resolution.executed_action,
+                        decision_latency_ms=record.decision_latency_ms,
+                    )
+                )
 
             executed_action = resolution.executed_action
             route = (
