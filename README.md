@@ -55,47 +55,93 @@ To make the comparison fair, the simulator also runs a second, disruption-free v
 
 ## How it works
 
-Nothing runs at the same time as anything else — every step happens one after another, which keeps every result exactly reproducible (with one caveat for the live AI, [explained below](#a-note-on-ai-reproducibility)).
+Nothing runs at the same time as anything else — every step happens one after another, which keeps every result exactly reproducible (with one caveat for the live AI, [explained below](#a-note-on-ai-reproducibility)). The system breaks down into five pieces, shown one at a time below.
 
+### 1. The overall pipeline
+
+Every run starts from configuration files and environment variables, and ends with a results folder.
+
+```mermaid
+flowchart TD
+    A["5 configuration files<br/>(network, disruption,<br/>both policies, experiment)"] --> C
+    B["environment variables<br/>(OPENAI_API_KEY, LLM_MODEL)"] --> C
+    C["command-line tool<br/>validate-config or run"] --> D["Run the experiment,<br/>replication by replication"]
+    D --> E["Results folder,<br/>written incrementally as<br/>each replication finishes"]
 ```
- 5 configuration files                environment variables
- (network, disruption,                (OPENAI_API_KEY, LLM_MODEL)
-  both policies, experiment)                    |
-        |                                        |
-        v                                        v
- +--------------------------------------------------------+
- |                    command-line tool                   |
- |     validate-config  --or--  run                        |
- +--------------------------------------------------------+
-                          |
-                          v
-      for each replication (independent repeated trial):
-      +----------------------------------------------+
-      |  1. generate one shared random "future" for   |
-      |     this trial: demand, delays, releases      |
-      |  2. make a second copy with the disruption     |
-      |     removed  (the "undisrupted" counterfactual)|
-      |  3. run a quiet 20-day warm-up (no decisions)  |
-      |  4. freeze that moment, copy it 4 times        |
-      |                                                |
-      |   +-----------+  +-----------+                 |
-      |   | rulebook  |  | rulebook  |                 |
-      |   | undisrupt.|  | disrupted |                 |
-      |   +-----------+  +-----------+                 |
-      |   | AI agent  |  | AI agent  |                 |
-      |   | undisrupt.|  | disrupted |                 |
-      |   +-----------+  +-----------+                 |
-      |                                                |
-      |  5. each of the 4 runs plays out day by day;    |
-      |     only shipments that need a decision get one|
-      |  6. compare: (AI's disruption cost) minus       |
-      |     (rulebook's disruption cost)                |
-      +----------------------------------------------+
-                          |
-                          v
-              one results folder per experiment,
-        written incrementally as each trial finishes
+
+### 2. One replication, step by step
+
+A "replication" is one independent, repeated trial — the baseline experiment runs 100 of these. Each one builds a fair, paired comparison from scratch:
+
+```mermaid
+flowchart TD
+    S["Generate one shared random future<br/>for this replication:<br/>demand, delays, shipment releases"] --> U["Copy it and remove only the disruption<br/>→ the 'undisrupted' counterfactual"]
+    S --> W["20-day quiet warm-up<br/>(no decisions made yet)"]
+    U --> W
+    W --> F["Freeze this moment,<br/>then copy it 4 times"]
+    F --> B1["Rulebook<br/>(undisrupted world)"]
+    F --> B2["Rulebook<br/>(disrupted world)"]
+    F --> B3["AI agent<br/>(undisrupted world)"]
+    F --> B4["AI agent<br/>(disrupted world)"]
+    B1 --> R["Compare:<br/>(AI's disruption cost) minus<br/>(rulebook's disruption cost)"]
+    B2 --> R
+    B3 --> R
+    B4 --> R
 ```
+
+### 3. Inside one simulated day
+
+Each of the four runs above plays out one day at a time, always in this order:
+
+```mermaid
+flowchart TD
+    D1["Reveal any newly-announced disruption"] --> D2["Shipments arriving today<br/>are delivered or move onward"]
+    D2 --> D3["Today's scheduled shipments are released"]
+    D3 --> D4["Today's demand is served from stock;<br/>anything short becomes backlog"]
+    D4 --> D5{"Does any shipment<br/>need a decision today?"}
+    D5 -- yes --> D6["Ask the policy:<br/>wait / reroute / expedite / decline"]
+    D5 -- no --> D7["Shipments that can depart today, do"]
+    D6 --> D7
+    D7 --> D8["Add up today's costs"]
+```
+
+### 4. How one decision gets made
+
+Whenever a shipment does need a decision, both policies go through the exact same gate — nothing either one proposes is trusted blindly:
+
+```mermaid
+flowchart TD
+    O["The shipment's relevant facts are packaged<br/>into a read-only snapshot"] --> P{"Which policy<br/>is deciding?"}
+    P -- rulebook --> H["Instantly computes the<br/>cheapest valid option"]
+    P -- "AI agent" --> L["Asks a few clarifying questions,<br/>then submits one decision"]
+    H --> V{"Is the proposed<br/>decision actually valid?"}
+    L --> V
+    V -- yes --> X["The decision is carried out"]
+    V -- "no, or declined" --> FB["A safe fallback takes over<br/>(normally: the rulebook itself)"]
+    FB --> V2{"Is the fallback<br/>valid?"}
+    V2 -- yes --> X
+    V2 -- no --> WT["Last-resort safe choice: wait"]
+```
+
+### 5. The AI agent's conversation
+
+When it's the AI agent's turn, it doesn't just get told the answer — it has a short, bounded conversation with the simulator before committing to one decision:
+
+```mermaid
+sequenceDiagram
+    participant Sim as Simulator
+    participant AI as AI agent
+    Sim->>AI: This shipment needs a decision
+    AI->>Sim: What are this shipment's facts?
+    Sim-->>AI: (quantity, due date, current location...)
+    AI->>Sim: What are my route options?
+    Sim-->>AI: (each option's cost and arrival day)
+    AI->>Sim: Tell me more about option X
+    Sim-->>AI: (full detail on option X)
+    AI->>Sim: Final decision: reroute via X
+```
+
+It's capped at a handful of questions per decision, and it can only ask about — never change — the facts it's given.
 
 Every configuration file is a plain text file, so every run is fully described and reproducible just by keeping the files that produced it — there are no hidden command-line switches for anything that affects the science.
 
