@@ -64,7 +64,7 @@ Every run starts from configuration files and environment variables, and ends wi
 ```mermaid
 flowchart TD
     A["5 configuration files<br/>(network, disruption,<br/>both policies, experiment)"] --> C
-    B["environment variables<br/>(OPENAI_API_KEY, LLM_MODEL)"] --> C
+    B["environment variables<br/>(LLM_API_KEY, LLM_MODEL)"] --> C
     C["command-line tool<br/>validate-config or run"] --> D["Run the experiment,<br/>replication by replication"]
     D --> E["Results folder,<br/>written incrementally as<br/>each replication finishes"]
 ```
