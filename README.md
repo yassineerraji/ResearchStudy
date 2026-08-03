@@ -1,4 +1,4 @@
-# Supply-Chain Agent Evaluation
+# Evaluating LLM-Enabled Agents for Supply-Chain Disruption Mitigation 
 
 A research simulator that answers one question:
 
