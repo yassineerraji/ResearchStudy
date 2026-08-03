@@ -30,6 +30,11 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.10",
 ]
+# Not used by the simulator itself: only analysis/plot_results.py, a
+# standalone script that reads already-written experiment output files.
+analysis = [
+    "matplotlib>=3.8",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

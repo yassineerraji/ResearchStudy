@@ -1,0 +1,35 @@
+# Combines the baseline network, the "Heavy" extended-closure-plus-congestion
+# scenario, and two policies into one paired experiment. Identical to
+# baseline_comparison.yaml (the "Medium" profile) in every parameter except
+# scenario_config and experiment_id, and deliberately reuses the same
+# base_seed: since demand and ordinary transport delays are derived only
+# from (base_seed, replication), not from scenario content, this experiment
+# shares the exact same underlying random "world" as the Medium and Light
+# profiles for a given replication number -- only the disruption differs.
+
+schema_version: 1
+experiment_id: heavy_port_disruption_comparison
+
+network_config: ../networks/baseline_network.yaml
+scenario_config: ../scenarios/port_extended_closure.yaml
+
+policy_configs:
+  heuristic: ../policies/heuristic.yaml
+  llm_agent: ../policies/llm_agent.yaml
+
+warmup_days: 20
+horizon_days: 60
+drain_days: 30
+terminal_penalty_days: 30
+
+replications: 100
+base_seed: 1042
+
+counterfactual_mode: POLICY_SPECIFIC
+fail_fast: true
+
+output_root: ../../outputs
+write_event_tapes: true
+write_daily_metrics: true
+write_decision_traces: true
+write_llm_interactions: true

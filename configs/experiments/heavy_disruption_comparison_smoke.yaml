@@ -1,0 +1,31 @@
+# A small, cheap, real-API variant of heavy_disruption_comparison.yaml, used
+# to validate the "Heavy" scenario end to end against a real OpenAI key
+# before committing to its full 100-replication run -- mirrors
+# baseline_comparison_smoke.yaml's shortened horizon/drain/replications.
+
+schema_version: 1
+experiment_id: heavy_port_disruption_comparison_smoke
+
+network_config: ../networks/baseline_network.yaml
+scenario_config: ../scenarios/port_extended_closure.yaml
+
+policy_configs:
+  heuristic: ../policies/heuristic.yaml
+  llm_agent: ../policies/llm_agent.yaml
+
+warmup_days: 20
+horizon_days: 45
+drain_days: 15
+terminal_penalty_days: 30
+
+replications: 2
+base_seed: 1042
+
+counterfactual_mode: POLICY_SPECIFIC
+fail_fast: true
+
+output_root: ../../outputs
+write_event_tapes: true
+write_daily_metrics: true
+write_decision_traces: true
+write_llm_interactions: true
