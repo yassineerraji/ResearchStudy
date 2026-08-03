@@ -262,8 +262,3 @@ mypy                                      # type checks
 ```
 
 None of the automated tests call the real OpenAI API — the AI-related tests use a fully local, scripted stand-in, so the test suite costs nothing and never depends on network access.
-
-## Where to learn more
-
-- **`CLAUDE.md`** — the complete technical build contract for this project: every formula, file responsibility, and locked design decision, for anyone extending or auditing the codebase in detail.
-- **`REPORT.md`** — a current, plain-language snapshot of exactly what's been verified so far and what hasn't, useful before committing to a large/expensive run.
