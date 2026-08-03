@@ -1,4 +1,4 @@
-# Evaluating LLM-Enabled Agents for Supply-Chain Disruption Mitigation 
+# Evaluating Agentic AI for Supply-Chain Disruption Mitigation 
 
 A research simulator that answers one question:
 
