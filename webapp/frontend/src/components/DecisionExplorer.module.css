@@ -1,0 +1,77 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 12px;
+}
+
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.shipmentId {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.actionType {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.badges {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.badgeWarning {
+  composes: badge;
+  color: #7a5300;
+  background: color-mix(in srgb, var(--status-warning) 25%, transparent);
+}
+
+.badgeCritical {
+  composes: badge;
+  color: var(--status-critical);
+  background: color-mix(in srgb, var(--status-critical) 15%, transparent);
+}
+
+.rationale {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.meta {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

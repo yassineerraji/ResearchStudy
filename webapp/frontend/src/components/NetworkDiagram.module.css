@@ -1,0 +1,19 @@
+.diagram {
+  width: 100%;
+  height: auto;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.nodeLabel {
+  font-size: 9px;
+  font-weight: 600;
+  fill: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.nodeName {
+  font-size: 10px;
+  fill: var(--text-muted);
+}

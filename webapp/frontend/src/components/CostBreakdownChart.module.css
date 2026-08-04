@@ -1,0 +1,63 @@
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.segment,
+.segmentActive {
+  border: none;
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.segmentActive {
+  background: var(--text-primary);
+  color: var(--page-plane);
+}
+
+.legend {
+  display: flex;
+  gap: 14px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.legendDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.chart {
+  width: 100%;
+  height: auto;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.axisLabel {
+  font-size: 9px;
+  fill: var(--text-muted);
+}
