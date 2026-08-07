@@ -202,3 +202,29 @@ export interface ConfigDefaultsResponse {
   config_type: string
   content: Record<string, unknown>
 }
+
+export interface RunLimits {
+  max_sandbox_replications: number
+  max_concurrent_runs: number
+}
+
+export type RunLifecycleStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
+
+export interface RunStatus {
+  run_id: string
+  status: RunLifecycleStatus
+  experiment_id: string | null
+  total_replications: number
+  completed_replications: number
+  error: string | null
+  created_at: string
+}
+
+export interface RunSubmitRequest {
+  network: Record<string, unknown>
+  scenario: Record<string, unknown>
+  heuristic_policy: Record<string, unknown>
+  llm_policy: Record<string, unknown>
+  experiment: Record<string, unknown>
+  api_key: string
+}

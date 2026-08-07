@@ -17,7 +17,7 @@ from fastapi.responses import Response
 
 from app.config import get_settings
 from app.schemas.gallery import ExperimentDetailResponse, ReplaySliceResponse
-from app.schemas.runs import RunStatusResponse, RunSubmitRequest
+from app.schemas.runs import RunLimitsResponse, RunStatusResponse, RunSubmitRequest
 from app.services import gallery_reader
 from app.services.run_launcher import get_launcher
 from app.services.run_registry import RunNotReadyError, RunStatus, get_registry
@@ -44,6 +44,16 @@ async def submit_run(request: RunSubmitRequest) -> RunStatusResponse:
 async def list_runs() -> list[RunStatusResponse]:
     records = await get_registry().list_all()
     return [RunStatusResponse.from_record(record) for record in records]
+
+
+@router.get("/limits", response_model=RunLimitsResponse)
+async def get_run_limits() -> RunLimitsResponse:
+    """Ahead of `/{run_id}` on purpose — otherwise `run_id="limits"` would match first."""
+    settings = get_settings()
+    return RunLimitsResponse(
+        max_sandbox_replications=settings.max_sandbox_replications,
+        max_concurrent_runs=settings.max_concurrent_runs,
+    )
 
 
 @router.get("/{run_id}", response_model=RunStatusResponse)

@@ -71,6 +71,14 @@ def _poll_until_terminal(client: TestClient, run_id: str, timeout_seconds: float
     raise AssertionError(f"run {run_id} did not reach a terminal status in time")
 
 
+def test_limits_endpoint_reflects_settings(client: TestClient) -> None:
+    response = client.get("/api/v1/runs/limits")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["max_sandbox_replications"] >= 1
+    assert body["max_concurrent_runs"] >= 1
+
+
 def test_submit_run_completes_and_is_readable(client: TestClient) -> None:
     _configure_launcher(mode="success")
     bundle = _load_valid_bundle()

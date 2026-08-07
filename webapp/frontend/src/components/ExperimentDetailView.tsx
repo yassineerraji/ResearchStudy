@@ -4,22 +4,38 @@
 // heavy daily_metrics/decision_traces files are never fetched in full (see
 // webapp/backend's byte-offset gallery index); only one branch's slice at a
 // time.
+//
+// Deliberately data-source-agnostic (`fetchDetail`/`fetchReplay` are
+// injected) so both a curated Results Gallery entry
+// (`pages/GalleryRunDetail.tsx`, backed by `/api/v1/gallery/...`) and a
+// visitor's own completed sandbox run (`pages/SandboxRunResult.tsx`, backed
+// by `/api/v1/runs/{id}/...`) render through the exact same view — the two
+// backend endpoints return identically-shaped payloads by design.
 
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { getExperimentDetail, getReplaySlice } from '../api/client'
+import { Link } from 'react-router-dom'
 import type { DailyMetricsRow, ExperimentDetail, ReplaySlice } from '../api/types'
-import StatTile from '../components/StatTile'
-import NetworkDiagram from '../components/NetworkDiagram'
-import CostBreakdownChart from '../components/CostBreakdownChart'
-import ReplayScrubber from '../components/ReplayScrubber'
-import DecisionExplorer from '../components/DecisionExplorer'
+import StatTile from './StatTile'
+import NetworkDiagram from './NetworkDiagram'
+import CostBreakdownChart from './CostBreakdownChart'
+import ReplayScrubber from './ReplayScrubber'
+import DecisionExplorer from './DecisionExplorer'
 import { formatCurrency, formatPercent } from '../lib/format'
-import styles from './RunDetail.module.css'
+import styles from './ExperimentDetailView.module.css'
 
-export default function RunDetail() {
-  const { directory } = useParams<{ directory: string }>()
+interface ExperimentDetailViewProps {
+  fetchDetail: () => Promise<ExperimentDetail>
+  fetchReplay: (replication: number, policy: string, runKind: string) => Promise<ReplaySlice>
+  backTo: string
+  backLabel: string
+}
 
+export default function ExperimentDetailView({
+  fetchDetail,
+  fetchReplay,
+  backTo,
+  backLabel,
+}: ExperimentDetailViewProps) {
   const [detail, setDetail] = useState<ExperimentDetail | null>(null)
   const [detailError, setDetailError] = useState<string | null>(null)
   const [costRunKind, setCostRunKind] = useState<'DISRUPTED' | 'UNDISRUPTED'>('DISRUPTED')
@@ -32,16 +48,18 @@ export default function RunDetail() {
   const [day, setDay] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!directory) return
-    getExperimentDetail(directory)
+    fetchDetail()
       .then(setDetail)
       .catch((err: Error) => setDetailError(err.message))
-  }, [directory])
+    // fetchDetail is expected to be a stable closure per mount (the caller
+    // builds it from a fixed directory/run id) — re-running on every render
+    // would just refetch the same data.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
-    if (!directory) return
     setReplayError(null)
-    getReplaySlice(directory, replication, policy, replayRunKind)
+    fetchReplay(replication, policy, replayRunKind)
       .then((slice) => {
         setReplaySlice(slice)
         const days = slice.daily_metrics.map((row) => row.day)
@@ -51,7 +69,8 @@ export default function RunDetail() {
         setDay(shockStartDay ?? days[0] ?? null)
       })
       .catch((err: Error) => setReplayError(err.message))
-  }, [directory, replication, policy, replayRunKind])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replication, policy, replayRunKind])
 
   const days = useMemo(() => replaySlice?.daily_metrics.map((row) => row.day) ?? [], [replaySlice])
   const dayRow: DailyMetricsRow | undefined = useMemo(
@@ -67,8 +86,8 @@ export default function RunDetail() {
 
   return (
     <article>
-      <Link to="/gallery" className={styles.backLink}>
-        ← Results Gallery
+      <Link to={backTo} className={styles.backLink}>
+        {backLabel}
       </Link>
 
       <header className={styles.header}>

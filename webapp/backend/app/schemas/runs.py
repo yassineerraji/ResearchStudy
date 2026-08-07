@@ -26,6 +26,16 @@ class RunSubmitRequest(BaseModel):
     api_key: str = Field(min_length=1, description="Never logged, persisted, or echoed back.")
 
 
+class RunLimitsResponse(BaseModel):
+    """Lets the frontend render honest input constraints (e.g. a number
+    input's `max`) instead of hardcoding a copy of `Settings` that could
+    silently drift from what the server actually enforces.
+    """
+
+    max_sandbox_replications: int
+    max_concurrent_runs: int
+
+
 class RunStatusResponse(BaseModel):
     run_id: str
     status: str

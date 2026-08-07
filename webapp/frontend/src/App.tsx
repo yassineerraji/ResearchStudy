@@ -17,6 +17,7 @@ export default function App() {
             About
           </NavLink>
           <NavLink to="/gallery">Results Gallery</NavLink>
+          <NavLink to="/runs/new">Run Your Own</NavLink>
         </nav>
       </header>
       <main className="app-main">

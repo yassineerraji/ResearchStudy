@@ -1,0 +1,103 @@
+.intro {
+  max-width: 640px;
+}
+
+.form {
+  max-width: 640px;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.section {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+
+.section h2 {
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.sectionHint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.fieldRow {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 160px;
+}
+
+.field input,
+.field select {
+  font-size: 0.9rem;
+  padding: 7px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--page-plane);
+  color: var(--text-primary);
+}
+
+.fieldHint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.apiKeySection {
+  border-color: var(--series-heuristic);
+}
+
+.apiKeyNote {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.submitRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.submitButton {
+  background: var(--text-primary);
+  color: var(--page-plane);
+  border: none;
+  border-radius: 6px;
+  padding: 10px 22px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.submitError {
+  color: var(--status-critical);
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+
+.loading,
+.loadError {
+  color: var(--text-secondary);
+  margin-top: 20px;
+}
