@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from supply_chain_simulator.data_io.loaders import ConfigurationError
 
 from app.services.gallery_reader import ExperimentNotFoundError
+from app.services.run_registry import RunNotFoundError, RunNotReadyError
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -31,3 +32,11 @@ def register_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=404, content={"detail": f"unknown experiment directory: {exc}"}
         )
+
+    @app.exception_handler(RunNotFoundError)
+    async def _handle_run_not_found(request: Request, exc: RunNotFoundError) -> JSONResponse:
+        return JSONResponse(status_code=404, content={"detail": f"unknown run: {exc}"})
+
+    @app.exception_handler(RunNotReadyError)
+    async def _handle_run_not_ready(request: Request, exc: RunNotReadyError) -> JSONResponse:
+        return JSONResponse(status_code=409, content={"detail": str(exc)})

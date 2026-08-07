@@ -27,6 +27,15 @@ class Settings:
     sandbox_root: Path
     cors_allow_origins: list[str] = field(default_factory=list)
 
+    # M3 sandbox-run guardrails. Deliberately conservative defaults: a
+    # hosted sandbox run spends a visitor's own real OpenAI credits and this
+    # host's CPU, and nothing upstream of this file enforces any limit on
+    # either — see the M3 design notes in the plan for why these three
+    # specific values exist rather than being left unbounded.
+    max_sandbox_replications: int = 3
+    max_concurrent_runs: int = 2
+    run_timeout_seconds: int = 900
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
@@ -41,4 +50,7 @@ def get_settings() -> Settings:
         outputs_dir=outputs_dir(),
         sandbox_root=sandbox_root(),
         cors_allow_origins=origins,
+        max_sandbox_replications=int(os.environ.get("SCAE_MAX_SANDBOX_REPLICATIONS", "3")),
+        max_concurrent_runs=int(os.environ.get("SCAE_MAX_CONCURRENT_RUNS", "2")),
+        run_timeout_seconds=int(os.environ.get("SCAE_RUN_TIMEOUT_SECONDS", "900")),
     )

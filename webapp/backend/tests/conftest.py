@@ -191,6 +191,12 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClie
     _build_fake_outputs(fake_root / "outputs")
 
     monkeypatch.setenv("SCAE_REPO_ROOT", str(fake_root))
+    # The real llm_agent.yaml fixture used by config/run tests names
+    # LLM_MODEL as its model_environment_variable; run_launcher now checks
+    # this deployment actually has it set before accepting a sandbox run
+    # (see run_launcher._prepare_sandbox), so every test needs it present
+    # even though the fake CLI never reads it.
+    monkeypatch.setenv("LLM_MODEL", "fake-test-model")
 
     from app.core.paths import repo_root
 
@@ -199,6 +205,23 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClie
         from app.config import get_settings
 
         get_settings.cache_clear()
+
+        from app.services.run_launcher import RunLauncher, set_launcher_for_tests
+        from app.services.run_registry import get_registry, reset_registry_for_tests
+
+        reset_registry_for_tests()
+        # Default: real command builder, but pointed at whatever fake repo
+        # root this test set up. Tests that need to control run outcomes
+        # (success/failure/timeout/cancel) call set_launcher_for_tests again
+        # themselves with a fake command_builder before submitting a run.
+        set_launcher_for_tests(
+            RunLauncher(
+                registry=get_registry(),
+                max_concurrent_runs=get_settings().max_concurrent_runs,
+                run_timeout_seconds=get_settings().run_timeout_seconds,
+            )
+        )
+
         from app.main import create_app
 
         with TestClient(create_app()) as test_client:

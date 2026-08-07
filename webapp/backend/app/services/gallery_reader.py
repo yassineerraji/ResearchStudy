@@ -107,7 +107,18 @@ def _read_csv_rows(path: Path) -> list[dict[str, Any]]:
 
 
 def get_experiment_detail(directory: str) -> dict[str, Any]:
-    experiment_dir = resolve_experiment_dir(directory)
+    return get_experiment_detail_at(resolve_experiment_dir(directory))
+
+
+def get_experiment_detail_at(experiment_dir: Path) -> dict[str, Any]:
+    """Path-based counterpart of `get_experiment_detail`.
+
+    Used directly by `app.services.run_launcher`/`app.routers.runs` for a
+    sandbox run's own output directory, which lives under
+    `outputs/_webapp_runs/...` and is deliberately excluded from the public
+    gallery listing (`_list_experiment_dirs` skips `_`-prefixed names) — so
+    it has no `directory` name `resolve_experiment_dir` would accept.
+    """
     manifest = _read_json(experiment_dir / "manifest.json")
     summary_path = experiment_dir / "summary.json"
     summary = _read_json(summary_path) if summary_path.is_file() else None
@@ -165,7 +176,13 @@ def _read_jsonl_slice(path: Path, byte_range: gallery_index.ByteRange) -> list[d
 def get_replay_slice(
     directory: str, replication: int, policy: str, run_kind: str
 ) -> dict[str, Any]:
-    experiment_dir = resolve_experiment_dir(directory)
+    return get_replay_slice_at(resolve_experiment_dir(directory), replication, policy, run_kind)
+
+
+def get_replay_slice_at(
+    experiment_dir: Path, replication: int, policy: str, run_kind: str
+) -> dict[str, Any]:
+    """Path-based counterpart of `get_replay_slice` — see `get_experiment_detail_at`."""
     index = gallery_index.get_index(experiment_dir)
     key = (replication, policy, run_kind)
 

@@ -2,12 +2,14 @@
 
 Inside `app.services`, this module is the only place a submitted config gets
 checked for correctness, and it checks it the same way the CLI's
-`validate-config` command does: by writing it to a throwaway directory and
-calling `supply_chain_simulator.data_io.loaders.resolve_config`. In the full
+`validate-config` command does: by writing it to a throwaway directory (via
+`app.services.config_bundle`) and calling
+`supply_chain_simulator.data_io.loaders.resolve_config`. In the full
 backend, this guarantees the API never accepts something the simulator would
 later reject — no validation rule is duplicated here. It does not run any
 simulation or persist the bundle; the sandbox directory is deleted before
-this function returns.
+this function returns. `app.services.run_launcher` reuses the same
+`config_bundle.write_bundle_files` helper for runs that must persist.
 """
 
 from __future__ import annotations
@@ -16,7 +18,6 @@ import shutil
 import uuid
 from typing import Any
 
-import yaml  # type: ignore[import-untyped]
 from pydantic import ValidationError
 from supply_chain_simulator.data_io.loaders import (
     ConfigurationError,
@@ -25,6 +26,7 @@ from supply_chain_simulator.data_io.loaders import (
 )
 
 from app.core.paths import repo_root, sandbox_root
+from app.services.config_bundle import write_bundle_files
 
 
 def validate_config_bundle(
@@ -34,41 +36,12 @@ def validate_config_bundle(
     llm_policy: dict[str, Any],
     experiment: dict[str, Any],
 ) -> ResolvedConfig:
-    """Resolves a full config bundle, raising `ConfigurationError` if invalid.
-
-    `experiment`'s path-referencing fields (`network_config`,
-    `scenario_config`, `policy_configs`, `output_root`) are overwritten to
-    point at the sandboxed files written here — callers only need to supply
-    the experiment's administrative fields (id, horizon, replications, ...).
-    """
+    """Resolves a full config bundle, raising `ConfigurationError` if invalid."""
     validation_dir = sandbox_root() / "_validate" / uuid.uuid4().hex
-    validation_dir.mkdir(parents=True, exist_ok=True)
     try:
-        (validation_dir / "network.yaml").write_text(
-            yaml.safe_dump(network), encoding="utf-8"
+        experiment_path = write_bundle_files(
+            validation_dir, network, scenario, heuristic_policy, llm_policy, experiment
         )
-        (validation_dir / "scenario.yaml").write_text(
-            yaml.safe_dump(scenario), encoding="utf-8"
-        )
-        (validation_dir / "heuristic.yaml").write_text(
-            yaml.safe_dump(heuristic_policy), encoding="utf-8"
-        )
-        (validation_dir / "llm.yaml").write_text(
-            yaml.safe_dump(llm_policy), encoding="utf-8"
-        )
-
-        experiment_document: dict[str, Any] = dict(experiment)
-        experiment_document.update(
-            network_config="network.yaml",
-            scenario_config="scenario.yaml",
-            policy_configs={"heuristic": "heuristic.yaml", "llm_agent": "llm.yaml"},
-            output_root="./results",
-        )
-        experiment_path = validation_dir / "experiment.yaml"
-        experiment_path.write_text(
-            yaml.safe_dump(experiment_document), encoding="utf-8"
-        )
-
         try:
             return resolve_config(experiment_path, repo_root())
         except ValidationError as exc:

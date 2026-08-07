@@ -12,6 +12,7 @@ It does not read or validate any config file content itself.
 from __future__ import annotations
 
 import os
+import sys
 from functools import lru_cache
 from pathlib import Path
 
@@ -49,3 +50,20 @@ def sandbox_root() -> Path:
     the sandbox anywhere under the repo satisfies that with no core changes.
     """
     return outputs_dir() / "_webapp_runs"
+
+
+def research_python_executable() -> str:
+    """The interpreter `run_launcher` should invoke `supply_chain_simulator.cli` with.
+
+    Prefers the research package's own `.venv` at the repository root — the
+    same environment a human operator running the CLI directly would use —
+    so a sandbox run behaves identically to a manual `python -m
+    supply_chain_simulator.cli run` invocation. Falls back to this backend's
+    own interpreter (which also has the core package installed, per M0) if
+    that venv isn't present, e.g. on a host where only the backend's
+    environment was provisioned.
+    """
+    candidate = repo_root() / ".venv" / "bin" / "python"
+    if candidate.is_file():
+        return str(candidate)
+    return sys.executable

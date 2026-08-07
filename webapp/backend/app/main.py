@@ -21,7 +21,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Supply-Chain Agent Evaluation — Web Backend",
         description=(
-            "Read-only and (in later milestones) run-orchestration API in front of "
+            "Read-only results browsing and sandbox-run orchestration in front of "
             "the supply_chain_simulator research package."
         ),
         version="0.1.0",
@@ -41,10 +41,11 @@ def create_app() -> FastAPI:
     async def health() -> dict[str, str]:
         return {"status": "ok"}
 
-    from app.routers import configs, gallery
+    from app.routers import configs, gallery, runs
 
     app.include_router(configs.router, prefix="/api/v1")
     app.include_router(gallery.router, prefix="/api/v1")
+    app.include_router(runs.router, prefix="/api/v1")
 
     return app
 
