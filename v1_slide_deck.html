@@ -254,60 +254,6 @@
 
   .findings{border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:20px 22px;}
   .findings h4{margin:0 0 10px 0; font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:600;}
-
-  @page { size: A4 landscape; margin: 12mm 14mm; }
-  @media print{
-    :root{
-      color-scheme: light;
-      --bg: #F1F4F6; --surface:#FFFFFF; --surface-2:#E7ECF0; --border:#D6DEE4; --border-strong:#B9C4CC;
-      --ink:#121822; --ink-2:#45525F; --ink-3:#74828F;
-      --llm:#2a78d6; --llm-soft:#E4EDFA; --heur:#eb6834; --heur-soft:#FCE8DE;
-      --sev-1:#E2AFA8; --sev-2:#C1584A; --sev-3:#7C2116;
-      --sev-1-ink:#5E2B25; --sev-2-ink:#FFFFFF; --sev-3-ink:#FFFFFF;
-      --grid:#D6DEE4; --shock: rgba(124,33,22,0.08);
-    }
-    html,body{background:#fff;}
-    .rail{display:none !important;}
-    .app{display:block;}
-    main{max-width:none;}
-    section.slide{
-      max-width:none; padding:14mm 4mm 10mm; border-bottom:none;
-      page-break-after:always; break-after:page;
-    }
-    section.slide.cover{min-height:auto; padding-top:6mm;}
-    section.slide:last-of-type{page-break-after:auto;}
-    .chart-wrap, .table-wrap{overflow:visible; box-shadow:none;}
-    .card{box-shadow:none; padding:14px 16px;}
-    .manifest-strip{box-shadow:none;}
-    a{color:var(--ink);}
-    .foot{padding:14mm 4mm;}
-
-    body{font-size:13.5px;}
-    section.slide{padding-top:10mm;}
-    .eyebrow{margin-bottom:8px;}
-    h2.slide-title{font-size:19px;}
-    .slide-sub{font-size:12px; margin-bottom:14px;}
-    .lede{font-size:12.5px;}
-    .card h4{font-size:10.5px; margin-bottom:6px;}
-    pre.mermaid{padding:8px 10px;}
-    pre.mermaid svg{max-width:600px !important; max-height:330px !important; width:auto !important; height:auto !important; display:block; margin:0 auto;}
-    .grid-2, .grid-3{gap:14px;}
-    .stat-row{gap:10px;}
-    .stat{padding:10px 12px;}
-    .stat .value{font-size:19px;}
-    table{font-size:11.5px;}
-    th,td{padding:6px 10px;}
-    .flow-steps .step{padding:9px 14px;}
-    blockquote{font-size:12px; padding:12px 16px;}
-
-    p, .lede{orphans:3; widows:3;}
-    .card, .stat, .chart-wrap, .table-wrap, .manifest-strip, blockquote,
-    .stat-row, .grid-2, .grid-3, .two-col-list, .small-multiples, .flow-steps,
-    pre.mermaid, .findings{
-      break-inside: avoid; page-break-inside: avoid;
-    }
-    h2.slide-title, .eyebrow{ break-after: avoid; page-break-after: avoid; }
-  }
 </style>
 
 
@@ -3931,6 +3877,9 @@ globalThis["mermaid"] = globalThis.__esbuild_esm_mermaid_nm["mermaid"].default;
       <div class="rail-act">Act V — Close</div>
       <a href="#s17"><span class="n">17</span>Limitations</a>
       <a href="#s18"><span class="n">18</span>Conclusion</a>
+      <div class="rail-act">Act VI — Toward V2</div>
+      <a href="#s19"><span class="n">19</span>The audit</a>
+      <a href="#s20"><span class="n">20</span>V2 roadmap</a>
     </nav>
   </aside>
 
@@ -4381,14 +4330,83 @@ flowchart TD
         <div class="stat"><div class="label">Full audit trail</div><div class="value" style="font-size:18px;">every decision,<br/>every call</div></div>
       </div>
       <div class="findings" style="margin-top:28px;">
-        <h4>Natural next questions</h4>
-        <ul class="clean">
-          <li>Where exactly does the crossover sit between Light and Medium — is it continuous or a step?</li>
-          <li>Does giving the heuristic a backlog-aware cost estimate close most of the gap, or does the agent's advantage survive that fix too?</li>
-          <li>How sensitive is the Heavy-scenario margin to which model is behind the agent?</li>
-          <li>Does the result hold under delayed or partial disruption information, where the two policies' information sets could genuinely diverge?</li>
-        </ul>
+        <h4>One question worth asking about that 0%/100% pattern</h4>
+        <p style="margin:0;font-size:13.5px;color:var(--ink-2);">Every one of the 300 replications agreed with its scenario's mean, every time — three severities, three unanimous verdicts. That's a fair thing to be suspicious of. Act VI, next, is the audit: why the randomness in this experiment is real but too small to matter here, and what V2 would need to change to see it matter.</p>
       </div>
+    </section>
+
+    <!-- 19 AUDIT -->
+    <section class="slide" id="s19">
+      <div class="eyebrow"><span class="idx">19</span>Act VI — Post-launch audit</div>
+      <h2 class="slide-title">Why every win rate is exactly 0% or 100%</h2>
+      <p class="slide-sub">Not a bug, and not a coincidence — the two policies are separated by a gap far too large for this environment's randomness to bridge. Here's the evidence, replication by replication.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Severity</th><th class="num">Mean Δ (EUR)</th><th class="num">Std dev (noise)</th><th class="num">|Δ| ÷ noise</th><th>Closest any replication got to flipping</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-sev-1">LIGHT</span></td><td class="num">+992.0</td><td class="num">129.9</td><td class="num">7.6×</td><td class="mono">+240 — still far from 0</td></tr>
+            <tr><td><span class="badge badge-sev-2">MEDIUM</span></td><td class="num">−3,910.8</td><td class="num">510.0</td><td class="num">7.7×</td><td class="mono">−2,320 — still far from 0</td></tr>
+            <tr><td><span class="badge badge-sev-3">HEAVY</span></td><td class="num">−74,489.7</td><td class="num">7,291.7</td><td class="num">10.2×</td><td class="mono">−63,345 — still far from 0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:12.5px; color:var(--ink-3); margin-top:10px;">For the winner to flip even once, a replication's random demand/delay noise would have to swing the outcome by 7.6–10.2 standard deviations — an amount that never happened, in any of the 300 replications, in any scenario.</p>
+
+      <div class="grid-2" style="margin-top:26px;">
+        <div class="card">
+          <h4>Why the noise stays this small</h4>
+          <ul class="clean no">
+            <li>The release schedule is fully deterministic — 40 units, every day, from day 1. It is not randomized between replications.</li>
+            <li>The same shipments get flagged for a decision in essentially every replication: <span class="mono">shipment_019</span>–<span class="mono">027</span> in 100/100 Light &amp; Medium runs, 28 shipments in 100/100 Heavy runs.</li>
+            <li>Only demand (mean 40, ±5, clamped 25–55 — a ~12.5% swing) and rare edge delays (93–99% reliable) vary between replications. They perturb the <em>dollar magnitude</em>, not which shipments are involved or what the structurally correct response is.</li>
+            <li>Disruption timing is known immediately and completely (<span class="mono">information_day = physical_start_day</span>) — no per-replication uncertainty in when it ends.</li>
+            <li>All three severities share one <span class="mono">base_seed</span> by design, to isolate the disruption as the only variable — this does not reduce variance <em>within</em> a severity, since each of its 100 replications still draws its own seed.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>The bigger reason: the heuristic is a near-constant function</h4>
+          <div class="table-wrap" style="margin-top:2px; box-shadow:none;">
+            <table>
+              <thead><tr><th>Severity</th><th>Heuristic's choices</th><th>LLM's choices</th></tr></thead>
+              <tbody>
+                <tr><td><span class="badge badge-sev-1">LIGHT</span></td><td class="mono">WAIT 100%<br/>(1,495/1,495)</td><td class="mono">REROUTE 85%<br/>WAIT 14% · EXPEDITE 1%</td></tr>
+                <tr><td><span class="badge badge-sev-2">MEDIUM</span></td><td class="mono">WAIT 100%<br/>(2,669/2,669)</td><td class="mono">EXPEDITE 61%<br/>REROUTE 34% · WAIT 5%</td></tr>
+                <tr><td><span class="badge badge-sev-3">HEAVY</span></td><td class="mono">WAIT 97.7%<br/>(12,750/13,050)</td><td class="mono">EXPEDITE 83%<br/>REROUTE 17% · WAIT 0.2%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin:10px 0 0; font-size:12px; color:var(--ink-3);">The heuristic chose WAIT in essentially every decision it ever made, at every severity — a near-constant function of the input.</p>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:22px;">
+        <h4>What the heuristic's WAIT estimate misses</h4>
+        <p style="margin:0;font-size:14px;color:var(--ink-2);">Its cost estimate assumes a blocked shipment resumes the day the port reopens with <strong style="color:var(--ink)">no contention</strong> — as if it has the port's entire departure capacity to itself. Against a generous 15-day due-date buffer and a 7-day closure, that naive estimate almost always prices out to zero late penalty — cheaper than a €80/shipment reroute premium or a €400/shipment expedite premium. So WAIT wins nearly every internal comparison, independent of the random noise. In reality, every shipment queued during the closure competes for the same <span class="mono">primary_port_to_hub</span> capacity (200 units/day) the moment it reopens: in the Medium scenario, 9 shipments × 40 units = 360 units contend for 200 units/day, adding 2+ queuing days before the 10-day sea voyage even starts. That compounding queue is real backlog cost, and it's invisible to a per-shipment, no-contention estimate. This is a documented, deliberate simplification — route estimates "do not reserve capacity" (§21) — applied identically to both policies. It just happens to hurt an everyone-waits strategy far more than one where some shipments actively leave via a different route.</p>
+      </div>
+    </section>
+
+    <!-- 20 V2 ROADMAP -->
+    <section class="slide" id="s20">
+      <div class="eyebrow"><span class="idx">20</span>Act VI — Roadmap</div>
+      <h2 class="slide-title">V2: turning three fixed points into a real experiment</h2>
+      <p class="slide-sub">None of the previous slide is a defect report. A deliberately simple, transparent baseline is behaving exactly as specified — the audit just explains <em>why</em> the verdict never wavers within a severity. These are the scope changes that would let win rates vary continuously instead of by design.</p>
+
+      <div class="card out" style="margin-bottom:24px;">
+        <h4>A scope extension, not a V1 fix</h4>
+        <p style="margin:0;font-size:14px;color:var(--ink-2);">Making the heuristic capacity- or backlog-aware would likely close much of the gap, especially in Heavy — but it turns "transparent classical rule vs. bounded AI agent" into "two increasingly sophisticated policies vs. each other." That's a different, legitimate study. V1's heuristic stays exactly as specified; a smarter baseline belongs in V2, run alongside it, not in place of it.</p>
+      </div>
+
+      <div class="flow-steps">
+        <div class="step"><span class="sn">1</span><span class="st"><strong>Randomize disruption duration &amp; magnitude</strong> per replication, instead of three fixed severities. Turns Light/Medium/Heavy into a continuous spectrum and locates the actual crossover instead of bracketing it from outside.</span></div>
+        <div class="step"><span class="sn">2</span><span class="st"><strong>Randomize the release schedule.</strong> It's currently fixed at 40 units/day from day 1, so noise only perturbs dollar magnitude — never which shipments are exposed or what the structurally correct response is. Jittering it makes each replication a genuinely different decision problem.</span></div>
+        <div class="step"><span class="sn">3</span><span class="st"><strong>Tune a disruption near the heuristic's break-even point</strong> on purpose, rather than testing scenarios that are clearly mild or clearly severe.</span></div>
+        <div class="step"><span class="sn">4</span><span class="st"><strong>Delayed or partial disruption information.</strong> V1 fixes <span class="mono">information_day = physical_start_day</span> by design so both policies always know the exact reopening day immediately. Relaxing that is the one change that could make the two policies' <em>information</em>, not just their arithmetic, genuinely diverge.</span></div>
+        <div class="step"><span class="sn">5</span><span class="st"><strong>A capacity-aware heuristic baseline</strong> — closer to a real (s,S)-style inventory policy — as an explicit second study, run side-by-side with V1's transparent baseline rather than replacing it.</span></div>
+        <div class="step"><span class="sn">6</span><span class="st"><strong>Paired significance testing</strong> in <span class="mono">experiments/metrics.py</span>, now that effect sizes are known to run 7.6–10.2× the noise floor — a natural, low-risk addition on top of the existing 95% CI.</span></div>
+      </div>
+
+      <p class="lede" style="margin-top:26px; font-size:15px;">The most direct lever isn't a bigger network — it's <strong>reintroducing the uncertainty V1 deliberately excludes.</strong> Topology was checked directly for this audit, not assumed: Light, Medium, and Heavy all run on the exact same 5-node, 6-edge <span class="mono">baseline_network.yaml</span>; only the scenario file differs between them. Three end-to-end routes narrow the decision space, but on their own they don't force a 100/0 split — the deterministic release schedule and the heuristic's near-constant WAIT do that.</p>
     </section>
 
     <div class="foot">Generated from <span class="mono">outputs/{light,baseline,heavy}_port_disruption_comparison__20260803T19035*Z</span> · Version 1 build contract, <span class="mono">CLAUDE.md</span> · figures computed directly from <span class="mono">summary.json</span> / <span class="mono">replications.csv</span> / <span class="mono">daily_metrics.csv</span>, no intermediate rounding beyond display.</div>
