@@ -1,0 +1,35 @@
+schema_version: 1
+scenario_id: regional_disruption_event
+description: >
+  One regional event with two correlated effects: the alternate port closes,
+  and the supplier's output is simultaneously reduced by transport
+  disruption in the same region. Both start together; each recovers and is
+  disclosed on its own timeline.
+
+shocks:
+  - shock_id: regional_port_closure
+    shock_type: EDGE_CLOSURE
+    target_type: EDGE
+    target_id: alternative_port_to_hub
+    planned_start_day: 22
+    start_day_jitter_days: 2
+    minimum_duration_days: 5
+    duration_mean_days: 9
+    duration_std_days: 2
+    maximum_duration_days: 15
+    max_information_delay_days: 1
+    event_group_id: regional_event_2026_a
+
+  - shock_id: regional_supplier_shortfall
+    shock_type: SUPPLIER_CAPACITY_REDUCTION
+    target_type: NODE
+    target_id: supplier_1
+    planned_start_day: 22
+    start_day_jitter_days: 2
+    minimum_duration_days: 4
+    duration_mean_days: 7
+    duration_std_days: 2
+    maximum_duration_days: 12
+    max_information_delay_days: 3
+    capacity_multiplier: 0.65
+    event_group_id: regional_event_2026_a

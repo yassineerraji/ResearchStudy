@@ -26,13 +26,17 @@ class ShockType(Enum):
     EDGE_CAPACITY_REDUCTION = "EDGE_CAPACITY_REDUCTION"
     EDGE_LEAD_TIME_INCREASE = "EDGE_LEAD_TIME_INCREASE"
     EDGE_COST_INCREASE = "EDGE_COST_INCREASE"
+    DEMAND_SPIKE = "DEMAND_SPIKE"
+    DEMAND_DROP = "DEMAND_DROP"
+    SUPPLIER_CAPACITY_REDUCTION = "SUPPLIER_CAPACITY_REDUCTION"
 
 
 class TargetType(Enum):
-    """Whether a shock targets a node or an edge."""
+    """Whether a shock targets a node, an edge, or the demand process."""
 
     NODE = "NODE"
     EDGE = "EDGE"
+    DEMAND = "DEMAND"
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +81,8 @@ class Shock:
     capacity_multiplier: float = 1.0
     lead_time_multiplier: float = 1.0
     cost_multiplier: float = 1.0
+    demand_multiplier: float = 1.0
+    event_group_id: str | None = None
 
     def __post_init__(self) -> None:
         if self.physical_end_day < self.physical_start_day:

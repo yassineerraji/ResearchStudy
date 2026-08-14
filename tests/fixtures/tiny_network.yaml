@@ -101,7 +101,10 @@ replenishment_plan:
   destination_node_id: plant_1
   first_release_day: 1
   release_every_days: 1
-  shipment_quantity: 5
+  shipment_quantity_mean: 5
+  shipment_quantity_std: 0
+  minimum_shipment_quantity: 5
+  maximum_shipment_quantity: 5
   due_offset_days: 5
   initial_route_edge_ids:
     - supplier_to_hub

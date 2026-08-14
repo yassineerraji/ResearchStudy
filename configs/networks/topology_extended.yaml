@@ -1,9 +1,12 @@
-# Defines the normal logistics network, one product, initial inventory,
-# replenishment schedule, demand process, and shared cost parameters used by
-# the baseline experiment. It describes the world before temporary shocks.
+# The Extended topology tier (V2 CLAUDE.md §V2.3.1): Standard plus a third
+# port and a second hub, giving genuine mesh redundancy -- two viable
+# multi-hop alternatives to the primary route instead of Standard's one.
+# supplier_1 and plant_1 are identical to Standard/Compact by construction;
+# every edge shared with Standard keeps Standard's exact values, renamed
+# only where a second hub required disambiguating the edge id.
 
 schema_version: 1
-network_id: baseline_network
+network_id: topology_extended
 
 units:
   quantity: units
@@ -46,6 +49,15 @@ nodes:
     processing_capacity: 80
     source_capacity: 0
 
+  - node_id: port_tertiary
+    name: Tertiary Port
+    node_type: PORT
+    latitude: null
+    longitude: null
+    storage_capacity: 1200
+    processing_capacity: 90
+    source_capacity: 0
+
   - node_id: hub_1
     name: Import Hub
     node_type: HUB
@@ -53,6 +65,15 @@ nodes:
     longitude: null
     storage_capacity: 2000
     processing_capacity: 200
+    source_capacity: 0
+
+  - node_id: hub_2
+    name: Secondary Hub
+    node_type: HUB
+    latitude: null
+    longitude: null
+    storage_capacity: 1500
+    processing_capacity: 150
     source_capacity: 0
 
   - node_id: plant_1
@@ -76,17 +97,6 @@ edges:
     reliability: 0.97
     emergency: false
 
-  - edge_id: primary_port_to_hub
-    origin_node_id: port_primary
-    destination_node_id: hub_1
-    mode: SEA
-    distance_km: 6000
-    base_lead_time_days: 10
-    daily_capacity: 200
-    unit_transport_cost: 8.00
-    reliability: 0.94
-    emergency: false
-
   - edge_id: supplier_to_alternative_port
     origin_node_id: supplier_1
     destination_node_id: port_alternative
@@ -98,7 +108,29 @@ edges:
     reliability: 0.96
     emergency: false
 
-  - edge_id: alternative_port_to_hub
+  - edge_id: supplier_to_tertiary_port
+    origin_node_id: supplier_1
+    destination_node_id: port_tertiary
+    mode: ROAD
+    distance_km: 800
+    base_lead_time_days: 5
+    daily_capacity: 60
+    unit_transport_cost: 8.50
+    reliability: 0.95
+    emergency: false
+
+  - edge_id: primary_port_to_hub_1
+    origin_node_id: port_primary
+    destination_node_id: hub_1
+    mode: SEA
+    distance_km: 6000
+    base_lead_time_days: 10
+    daily_capacity: 200
+    unit_transport_cost: 8.00
+    reliability: 0.94
+    emergency: false
+
+  - edge_id: alternative_port_to_hub_1
     origin_node_id: port_alternative
     destination_node_id: hub_1
     mode: SEA
@@ -109,7 +141,29 @@ edges:
     reliability: 0.93
     emergency: false
 
-  - edge_id: hub_to_plant
+  - edge_id: alternative_port_to_hub_2
+    origin_node_id: port_alternative
+    destination_node_id: hub_2
+    mode: SEA
+    distance_km: 5800
+    base_lead_time_days: 9
+    daily_capacity: 50
+    unit_transport_cost: 10.00
+    reliability: 0.94
+    emergency: false
+
+  - edge_id: tertiary_port_to_hub_2
+    origin_node_id: port_tertiary
+    destination_node_id: hub_2
+    mode: SEA
+    distance_km: 6200
+    base_lead_time_days: 11
+    daily_capacity: 55
+    unit_transport_cost: 10.50
+    reliability: 0.93
+    emergency: false
+
+  - edge_id: hub_1_to_plant
     origin_node_id: hub_1
     destination_node_id: plant_1
     mode: ROAD
@@ -118,6 +172,17 @@ edges:
     daily_capacity: 120
     unit_transport_cost: 3.00
     reliability: 0.98
+    emergency: false
+
+  - edge_id: hub_2_to_plant
+    origin_node_id: hub_2
+    destination_node_id: plant_1
+    mode: ROAD
+    distance_km: 350
+    base_lead_time_days: 3
+    daily_capacity: 100
+    unit_transport_cost: 3.50
+    reliability: 0.97
     emergency: false
 
   - edge_id: supplier_to_plant_air
@@ -152,14 +217,14 @@ replenishment_plan:
   first_release_day: 1
   release_every_days: 1
   shipment_quantity_mean: 40
-  shipment_quantity_std: 0
-  minimum_shipment_quantity: 40
-  maximum_shipment_quantity: 40
+  shipment_quantity_std: 6
+  minimum_shipment_quantity: 20
+  maximum_shipment_quantity: 55
   due_offset_days: 15
   initial_route_edge_ids:
     - supplier_to_primary_port
-    - primary_port_to_hub
-    - hub_to_plant
+    - primary_port_to_hub_1
+    - hub_1_to_plant
 
 action_costs:
   reroute_cost_per_unit: 2.00

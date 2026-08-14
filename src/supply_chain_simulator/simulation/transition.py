@@ -99,6 +99,12 @@ def apply_shock_operational_state(state: SimulationState, shocks: tuple[Shock, .
             continue
         active_shock_ids.add(shock.shock_id)
 
+        if shock.target_type is TargetType.DEMAND:
+            # DEMAND_SPIKE/DEMAND_DROP are realized into event-tape generation
+            # parameters (V2 §V2.3.2/§V2.3.3), never into runtime operational
+            # state -- this function's node/edge surface area is unchanged.
+            continue
+
         if shock.target_type is TargetType.NODE:
             node_state = state.node_operational_state.get(shock.target_id)
             if node_state is None:
@@ -107,6 +113,8 @@ def apply_shock_operational_state(state: SimulationState, shocks: tuple[Shock, .
                 node_state.available = False
             elif shock.shock_type is ShockType.NODE_CAPACITY_REDUCTION:
                 node_state.processing_capacity_multiplier *= shock.capacity_multiplier
+            elif shock.shock_type is ShockType.SUPPLIER_CAPACITY_REDUCTION:
+                node_state.source_capacity_multiplier *= shock.capacity_multiplier
         else:
             edge_state = state.edge_operational_state.get(shock.target_id)
             if edge_state is None:
@@ -178,27 +186,35 @@ def process_due_arrivals(state: SimulationState) -> None:
 # --- step 5: release scheduled shipments ----------------------------------------
 
 
-def release_shipments(state: SimulationState, release_events: tuple[ShipmentReleaseEvent, ...]) -> None:
-    for event in sorted(release_events, key=lambda e: e.shipment_id):
+def release_shipments(state: SimulationState, release_events: tuple[ShipmentReleaseEvent, ...]) -> int:
+    """Attempts every entry already in state.pending_releases (oldest-scheduled
+    first, i.e. ascending shipment_id) before today's newly scheduled events
+    (also ascending shipment_id), per CLAUDE.md V2 §V2.3.7. A release whose
+    source is unavailable, over its effective source_capacity, or would
+    overflow storage no longer raises: it is appended to
+    state.pending_releases and retried on a later day. Returns the total
+    quantity actually released this call -- the engine accumulates this into
+    its running total_released, since a deferred release must not be counted
+    until it actually enters the system.
+    """
+    pending = sorted(state.pending_releases, key=lambda e: e.shipment_id)
+    state.pending_releases = []
+    todays_events = sorted(release_events, key=lambda e: e.shipment_id)
+
+    total_released = 0
+    for event in (*pending, *todays_events):
         origin_node_id = event.origin_node_id
         node = state.network_definition.get_node(origin_node_id)
         node_state = state.node_operational_state[origin_node_id]
+        effective_source_capacity = math.floor(node.source_capacity * node_state.source_capacity_multiplier)
 
-        if not node_state.available:
-            raise SimulationInvariantError(
-                f"cannot release shipment {event.shipment_id}: source node {origin_node_id} "
-                f"is unavailable"
-            )
-        if event.quantity > node.source_capacity:
-            raise SimulationInvariantError(
-                f"cannot release shipment {event.shipment_id}: quantity {event.quantity} exceeds "
-                f"source_capacity {node.source_capacity} at {origin_node_id}"
-            )
-        if _node_occupancy(state, origin_node_id) + event.quantity > node.storage_capacity:
-            raise SimulationInvariantError(
-                f"cannot release shipment {event.shipment_id}: storage_capacity exceeded at "
-                f"{origin_node_id}"
-            )
+        if (
+            not node_state.available
+            or event.quantity > effective_source_capacity
+            or _node_occupancy(state, origin_node_id) + event.quantity > node.storage_capacity
+        ):
+            state.pending_releases.append(event)
+            continue
 
         state.shipments[event.shipment_id] = Shipment(
             shipment_id=event.shipment_id,
@@ -220,6 +236,9 @@ def release_shipments(state: SimulationState, release_events: tuple[ShipmentRele
             capacity_wait_days=0,
             delivered_day=None,
         )
+        total_released += event.quantity
+
+    return total_released
 
 
 # --- step 6: realize and fulfil demand ------------------------------------------

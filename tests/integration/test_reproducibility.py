@@ -19,6 +19,8 @@ import json
 from pathlib import Path
 
 from supply_chain_simulator.data_io.loaders import (
+    ScenarioConfig,
+    ShockConfig,
     build_initial_state,
     build_network_definition,
     load_network_config,
@@ -107,6 +109,83 @@ class TestEventTapeReproducibility:
         )
         assert first.seed != second.seed
         assert first.replication != second.replication
+
+
+class TestShockAndReleaseRealizationReproducibility:
+    """V2 §V2.9: identical config and seed reproduce identical realized
+    shocks (start day, duration, information day) and identical realized
+    release quantities, extending V1's existing event-tape reproducibility
+    assertion (TestEventTapeReproducibility above) to V2's new randomness.
+    """
+
+    def _build(self):
+        network_config = load_network_config(TINY_NETWORK_CONFIG)
+        network_definition = build_network_definition(network_config)
+        scenario_config = ScenarioConfig(
+            schema_version=1,
+            scenario_id="tiny_uncertain_shock",
+            description="A shock with genuine timing/duration/information uncertainty.",
+            shocks=[
+                ShockConfig(
+                    shock_id="uncertain_closure",
+                    shock_type="EDGE_CLOSURE",
+                    target_type="EDGE",
+                    target_id="supplier_to_hub",
+                    planned_start_day=3,
+                    start_day_jitter_days=2,
+                    minimum_duration_days=1,
+                    duration_mean_days=2,
+                    duration_std_days=1,
+                    maximum_duration_days=4,
+                    max_information_delay_days=2,
+                )
+            ],
+        )
+        replenishment_plan = network_config.replenishment_plan.model_copy(
+            update={"shipment_quantity_std": 3, "maximum_shipment_quantity": 15}
+        )
+        return build_disrupted_event_tape(
+            network_definition=network_definition,
+            demand_process=network_config.demand_process,
+            replenishment_plan=replenishment_plan,
+            scenario_config=scenario_config,
+            replication=1,
+            base_seed=777,
+            horizon_days=HORIZON_DAYS,
+            drain_days=DRAIN_DAYS,
+        )
+
+    def test_identical_seed_reproduces_identical_shocks_and_quantities(self) -> None:
+        first = self._build()
+        second = self._build()
+
+        assert first.shocks == second.shocks
+        first_quantities = [
+            event.quantity
+            for day_events in first.days
+            for event in day_events.shipment_release_events
+        ]
+        second_quantities = [
+            event.quantity
+            for day_events in second.days
+            for event in day_events.shipment_release_events
+        ]
+        assert first_quantities == second_quantities
+
+    def test_realization_is_not_accidentally_degenerate(self) -> None:
+        """Sanity check that this fixture actually exercises uncertainty
+        (jitter/duration/information-delay draws that can differ from the
+        planned defaults), so the reproducibility assertion above is testing
+        something real rather than an all-zero-variance edge case.
+        """
+        tape = self._build()
+        shock = tape.shocks[0]
+        realized_duration = shock.physical_end_day - shock.physical_start_day + 1
+        assert (
+            shock.physical_start_day != 3
+            or realized_duration != 2
+            or shock.information_day != shock.physical_start_day
+        )
 
 
 class TestHeuristicReproducibility:

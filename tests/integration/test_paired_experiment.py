@@ -27,6 +27,8 @@ from supply_chain_simulator.data_io.loaders import (
     ExperimentConfig,
     PolicyConfigPathsConfig,
     ResolvedConfig,
+    ScenarioConfig,
+    ShockConfig,
     build_initial_state,
     build_network_definition,
     load_heuristic_policy_config,
@@ -540,3 +542,160 @@ class TestMultiReplicationFakePolicyExperimentWritesAllFiles:
             "llm_agent:UNDISRUPTED",
             "llm_agent:DISRUPTED",
         }
+
+
+class TestCompoundEventUndisruptedTapeStripping:
+    """V2 §V2.3.4/§V2.9: a compound event's two shocks realize a shared
+    start day but independent durations, and the undisrupted tape removes
+    both while every other draw stays identical -- extending V1's existing
+    "undisrupted tape differs only by shocks" assertion to grouped shocks.
+    """
+
+    def test_group_shares_start_day_but_strips_both_shocks(self) -> None:
+        network_config = load_network_config(TINY_NETWORK_CONFIG)
+        network_definition = build_network_definition(network_config)
+        scenario_config = ScenarioConfig(
+            schema_version=1,
+            scenario_id="tiny_compound_event",
+            description="Two correlated shocks sharing one start-day jitter draw.",
+            shocks=[
+                ShockConfig(
+                    shock_id="a_edge_closure",
+                    shock_type="EDGE_CLOSURE",
+                    target_type="EDGE",
+                    target_id="supplier_to_hub",
+                    planned_start_day=3,
+                    start_day_jitter_days=1,
+                    minimum_duration_days=1,
+                    duration_mean_days=1,
+                    duration_std_days=0,
+                    maximum_duration_days=1,
+                    max_information_delay_days=0,
+                    event_group_id="regional",
+                ),
+                ShockConfig(
+                    shock_id="b_air_lead_time",
+                    shock_type="EDGE_LEAD_TIME_INCREASE",
+                    target_type="EDGE",
+                    target_id="supplier_to_plant_air",
+                    planned_start_day=3,
+                    start_day_jitter_days=1,
+                    minimum_duration_days=2,
+                    duration_mean_days=2,
+                    duration_std_days=0,
+                    maximum_duration_days=2,
+                    max_information_delay_days=0,
+                    lead_time_multiplier=1.5,
+                    event_group_id="regional",
+                ),
+            ],
+        )
+        disrupted = build_disrupted_event_tape(
+            network_definition=network_definition,
+            demand_process=network_config.demand_process,
+            replenishment_plan=network_config.replenishment_plan,
+            scenario_config=scenario_config,
+            replication=1,
+            base_seed=500,
+            horizon_days=6,
+            drain_days=3,
+        )
+        undisrupted = build_undisrupted_event_tape(disrupted)
+
+        assert len(disrupted.shocks) == 2
+        shock_a = next(s for s in disrupted.shocks if s.shock_id == "a_edge_closure")
+        shock_b = next(s for s in disrupted.shocks if s.shock_id == "b_air_lead_time")
+        # Shared jitter: both realized start days move by the same offset
+        # from their (equal) planned_start_day.
+        assert shock_a.physical_start_day == shock_b.physical_start_day
+        # Independent durations: 1 day vs 2 days, so end days necessarily differ.
+        assert shock_a.physical_end_day != shock_b.physical_end_day
+
+        assert undisrupted.shocks == ()
+        for disrupted_day, undisrupted_day in zip(disrupted.days, undisrupted.days, strict=True):
+            assert disrupted_day.demand_events == undisrupted_day.demand_events
+            assert (
+                disrupted_day.shipment_release_events == undisrupted_day.shipment_release_events
+            )
+            assert disrupted_day.edge_extra_delay_days == undisrupted_day.edge_extra_delay_days
+            assert undisrupted_day.newly_known_shock_ids == ()
+
+
+def _topology_resolved_config(
+    network_filename: str, *, replications: int, base_seed: int
+) -> ResolvedConfig:
+    """A ResolvedConfig built directly from a real topology-tier network file
+    plus the real port_closure.yaml scenario (target_id port_primary exists
+    in every tier by construction, V2 §V2.3.1), with a shortened horizon so
+    the smoke test runs quickly.
+    """
+    network_path = REPO_ROOT / "configs/networks" / network_filename
+    scenario_path = REPO_ROOT / "configs/scenarios/port_closure.yaml"
+    experiment_config = ExperimentConfig(
+        schema_version=1,
+        experiment_id="topology_smoke_test",
+        network_config=network_filename,
+        scenario_config="port_closure.yaml",
+        policy_configs=PolicyConfigPathsConfig(
+            heuristic="heuristic.yaml", llm_agent="llm_agent.yaml"
+        ),
+        warmup_days=20,
+        horizon_days=35,
+        drain_days=10,
+        terminal_penalty_days=30,
+        replications=replications,
+        base_seed=base_seed,
+        counterfactual_mode="POLICY_SPECIFIC",
+        fail_fast=True,
+        output_root="outputs",
+        write_event_tapes=True,
+        write_daily_metrics=True,
+        write_decision_traces=True,
+        write_llm_interactions=True,
+    )
+    return ResolvedConfig(
+        experiment=experiment_config,
+        network=load_network_config(network_path),
+        scenario=load_scenario_config(scenario_path),
+        heuristic_policy=load_heuristic_policy_config(HEURISTIC_CONFIG_PATH),
+        llm_policy=load_llm_policy_config(LLM_CONFIG_PATH),
+        experiment_config_path=REPO_ROOT / "configs/experiments/baseline_comparison.yaml",
+        network_config_path=network_path,
+        scenario_config_path=scenario_path,
+        heuristic_config_path=HEURISTIC_CONFIG_PATH,
+        llm_config_path=LLM_CONFIG_PATH,
+        output_root=REPO_ROOT / "outputs",
+    )
+
+
+class TestFullPairedRunPerTopologyTier:
+    """V2 §V2.9: a full paired run on each topology tier completes and
+    produces valid TCD/delta values -- proving no topology-specific code
+    path is missing. WaitFallbackPolicy stands in for the LLM agent (no live
+    API call, matching V1 §9's "no test ever calls a real API").
+    """
+
+    @pytest.mark.parametrize(
+        "network_filename",
+        ["topology_compact.yaml", "baseline_network.yaml", "topology_extended.yaml"],
+    )
+    def test_tier_completes_with_valid_tcd(self, network_filename: str, tmp_path: Path) -> None:
+        resolved_config = _topology_resolved_config(network_filename, replications=1, base_seed=900)
+        runner = ExperimentRunner(
+            heuristic_policy=_heuristic_from(resolved_config),
+            heuristic_fallback_policy=WaitFallbackPolicy(),
+            comparison_policy=WaitFallbackPolicy(),
+            comparison_fallback_policy=WaitFallbackPolicy(),
+        )
+        with ExperimentWriter(tmp_path) as writer:
+            result = runner.run(resolved_config, writer)
+
+        assert len(result.replication_comparisons) == 1
+        comparison = result.replication_comparisons[0]
+        assert comparison.heuristic_tcd == pytest.approx(
+            comparison.heuristic_disrupted_cost - comparison.heuristic_undisrupted_cost
+        )
+        assert comparison.llm_tcd == pytest.approx(
+            comparison.llm_disrupted_cost - comparison.llm_undisrupted_cost
+        )
+        assert comparison.delta == pytest.approx(comparison.llm_tcd - comparison.heuristic_tcd)

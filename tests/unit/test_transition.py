@@ -194,6 +194,47 @@ class TestApplyShockOperationalState:
         apply_shock_operational_state(state, (self._shock(),))
         assert state.edge_operational_state["supplier_to_hub"].available is True
 
+    def test_supplier_capacity_reduction_multiplies_source_capacity(self) -> None:
+        """Mirrors test_node_capacity_reduction_multiplies, but for the new
+        source_capacity_multiplier field (V2 §V2.3.2)."""
+        state = _tiny_state(day=3)
+        shock = self._shock(
+            shock_id="s1",
+            shock_type=ShockType.SUPPLIER_CAPACITY_REDUCTION,
+            target_type=TargetType.NODE,
+            target_id="supplier_1",
+            capacity_multiplier=0.4,
+        )
+        apply_shock_operational_state(state, (shock,))
+        assert state.node_operational_state["supplier_1"].source_capacity_multiplier == pytest.approx(0.4)
+        # Unaffected: SUPPLIER_CAPACITY_REDUCTION only touches source capacity.
+        assert state.node_operational_state["supplier_1"].processing_capacity_multiplier == pytest.approx(1.0)
+
+    def test_demand_shock_touches_no_operational_state(self) -> None:
+        """V2 §V2.3.2/§V2.9 (negative test): DEMAND_SPIKE/DEMAND_DROP are
+        realized into event-tape generation parameters, never into runtime
+        node/edge operational state.
+        """
+        state = _tiny_state(day=3)
+        shock = self._shock(
+            shock_id="d1",
+            shock_type=ShockType.DEMAND_SPIKE,
+            target_type=TargetType.DEMAND,
+            target_id="plant_1",
+            demand_multiplier=1.5,
+        )
+        apply_shock_operational_state(state, (shock,))
+        assert state.active_shock_ids == {"d1"}
+        for node_state in state.node_operational_state.values():
+            assert node_state.available is True
+            assert node_state.processing_capacity_multiplier == 1.0
+            assert node_state.source_capacity_multiplier == 1.0
+        for edge_state in state.edge_operational_state.values():
+            assert edge_state.available is True
+            assert edge_state.capacity_multiplier == 1.0
+            assert edge_state.lead_time_multiplier == 1.0
+            assert edge_state.cost_multiplier == 1.0
+
 
 class TestProcessDueArrivals:
     def test_intermediate_arrival_advances_to_at_node(self) -> None:
@@ -318,28 +359,74 @@ class TestReleaseShipments:
 
     def test_valid_release_creates_at_node_shipment(self) -> None:
         state = _tiny_state(day=1)
-        release_shipments(state, (self._event(),))
+        released = release_shipments(state, (self._event(),))
         shipment = state.shipments["shipment_001_001"]
         assert shipment.status is ShipmentStatus.AT_NODE
         assert shipment.current_node_id == "supplier_1"
         assert shipment.quantity == 5
+        assert released == 5
+        assert state.pending_releases == []
 
-    def test_unavailable_source_rejected(self) -> None:
+    def test_unavailable_source_defers_instead_of_raising(self) -> None:
+        """V2 §V2.3.7: a source-infeasible release no longer raises -- it is
+        appended to pending_releases and retried on a later day."""
         state = _tiny_state(day=1)
         state.node_operational_state["supplier_1"].available = False
-        with pytest.raises(SimulationInvariantError, match="unavailable"):
-            release_shipments(state, (self._event(),))
+        released = release_shipments(state, (self._event(),))
+        assert released == 0
+        assert "shipment_001_001" not in state.shipments
+        assert [e.shipment_id for e in state.pending_releases] == ["shipment_001_001"]
 
-    def test_quantity_over_source_capacity_rejected(self) -> None:
+    def test_quantity_over_source_capacity_defers(self) -> None:
         state = _tiny_state(day=1)
-        with pytest.raises(SimulationInvariantError, match="source_capacity"):
-            release_shipments(state, (self._event(quantity=999),))
+        released = release_shipments(state, (self._event(quantity=999),))
+        assert released == 0
+        assert [e.shipment_id for e in state.pending_releases] == ["shipment_001_001"]
 
-    def test_storage_overflow_at_source_rejected(self) -> None:
+    def test_storage_overflow_at_source_defers(self) -> None:
         state = _tiny_state(day=1)
         state.inventory["supplier_1"]["widget"] = 99  # supplier_1 storage_capacity is 100
-        with pytest.raises(SimulationInvariantError, match="storage_capacity"):
-            release_shipments(state, (self._event(quantity=5),))
+        released = release_shipments(state, (self._event(quantity=5),))
+        assert released == 0
+        assert [e.shipment_id for e in state.pending_releases] == ["shipment_001_001"]
+
+    def test_deferred_release_retries_and_succeeds_once_source_recovers(self) -> None:
+        state = _tiny_state(day=1)
+        state.node_operational_state["supplier_1"].available = False
+        released_day1 = release_shipments(state, (self._event(),))
+        assert released_day1 == 0
+
+        state.node_operational_state["supplier_1"].available = True
+        released_day2 = release_shipments(state, ())
+        assert released_day2 == 5
+        assert state.shipments["shipment_001_001"].status is ShipmentStatus.AT_NODE
+        assert state.pending_releases == []
+
+    def test_pending_releases_attempted_before_todays_new_releases(self) -> None:
+        """Pending (oldest-scheduled) releases go first, in ascending
+        shipment_id order, before today's new events -- V2 §V2.3.7. Only one
+        of the two releases fits supplier_1's storage_capacity (100) once its
+        existing occupancy (60) is accounted for, so whichever is attempted
+        first wins the remaining headroom.
+        """
+        state = _tiny_state(day=1)
+        state.inventory["supplier_1"]["widget"] = 60
+        state.pending_releases = [self._event(shipment_id="shipment_001_001", quantity=40)]
+        release_shipments(state, (self._event(shipment_id="shipment_002_001", quantity=40),))
+        assert "shipment_001_001" in state.shipments
+        assert "shipment_002_001" not in state.shipments
+        assert [e.shipment_id for e in state.pending_releases] == ["shipment_002_001"]
+
+    def test_supplier_capacity_reduction_throttles_release(self) -> None:
+        """Mirrors NODE_CAPACITY_REDUCTION's effect on processing_capacity_multiplier,
+        but for source_capacity_multiplier (V2 §V2.3.2)."""
+        state = _tiny_state(day=1)
+        state.node_operational_state["supplier_1"].source_capacity_multiplier = 0.05
+        # supplier_1's source_capacity is 50; floor(50 * 0.05) == 2, below the
+        # requested quantity of 5.
+        released = release_shipments(state, (self._event(quantity=5),))
+        assert released == 0
+        assert [e.shipment_id for e in state.pending_releases] == ["shipment_001_001"]
 
 
 class TestFulfilBacklogAndDemand:

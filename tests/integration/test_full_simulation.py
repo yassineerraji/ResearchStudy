@@ -41,6 +41,8 @@ import pytest
 
 from supply_chain_simulator.data_io.loaders import (
     NetworkConfig,
+    ScenarioConfig,
+    ShockConfig,
     build_initial_state,
     build_network_definition,
     load_network_config,
@@ -680,6 +682,85 @@ class TestFullSimulationExecutesExpedite:
         assert costs.transport == pytest.approx(45.0)
         assert costs.terminal == 0.0
         assert result.terminated_with_unresolved_state is False
+
+
+class TestFullSimulationSupplierClosureDefersReleases:
+    """V2 §V2.3.7: closing the supplier itself (NODE_CLOSURE on a SUPPLIER
+    node) makes release_shipments defer instead of raising. Product balance
+    is asserted every day by simulation/engine.py's _assert_invariants, so a
+    run that completes at all across a deferred-then-retried release is
+    already proof the corrected total_released bookkeeping (V2.7's engine.py
+    correction) holds.
+    """
+
+    def _run(self) -> SimulationResult:
+        network_config, network_definition, initial_state = _build_day_zero()
+        scenario_config = ScenarioConfig(
+            schema_version=1,
+            scenario_id="tiny_supplier_closure",
+            description="Supplier closed for the first two days.",
+            shocks=[
+                ShockConfig(
+                    shock_id="close_supplier",
+                    shock_type="NODE_CLOSURE",
+                    target_type="NODE",
+                    target_id="supplier_1",
+                    planned_start_day=1,
+                    start_day_jitter_days=0,
+                    minimum_duration_days=2,
+                    duration_mean_days=2,
+                    duration_std_days=0,
+                    maximum_duration_days=2,
+                    max_information_delay_days=0,
+                )
+            ],
+        )
+        disrupted_tape = build_disrupted_event_tape(
+            network_definition=network_definition,
+            demand_process=network_config.demand_process,
+            replenishment_plan=network_config.replenishment_plan,
+            scenario_config=scenario_config,
+            replication=1,
+            base_seed=42,
+            horizon_days=HORIZON_DAYS,
+            drain_days=DRAIN_DAYS,
+        )
+
+        return SimulationEngine().run(
+            initial_state=initial_state,
+            event_tape=disrupted_tape,
+            start_day=1,
+            horizon_day=HORIZON_DAYS,
+            drain_days=DRAIN_DAYS,
+            decision_enabled=False,
+            run_identity=_run_identity("DISRUPTED"),
+            reroute_cost_per_unit=REROUTE_COST_PER_UNIT,
+            expedite_premium_per_unit=EXPEDITE_PREMIUM_PER_UNIT,
+            terminal_penalty_days=TERMINAL_PENALTY_DAYS,
+        )
+
+    def test_run_completes_without_invariant_violation(self) -> None:
+        # If total_released ever overcounted a deferred release, the daily
+        # product-balance assertion in engine.py would raise before this
+        # returns -- completing at all is the real assertion here.
+        result = self._run()
+        assert result.final_state.pending_releases == []
+
+    def test_deferred_releases_keep_their_originally_scheduled_due_day(self) -> None:
+        result = self._run()
+        shipments = result.final_state.shipments
+        # s001 and s002 were scheduled on days 1 and 2, both blocked by the
+        # closure, and only actually release once supplier_1 reopens on day 3
+        # -- but due_day stays anchored to the original schedule (day + 5).
+        assert shipments["shipment_001_001"].due_day == 6
+        assert shipments["shipment_002_001"].due_day == 7
+
+    def test_delayed_release_still_departs_and_is_eventually_delivered(self) -> None:
+        result = self._run()
+        s001 = result.final_state.shipments["shipment_001_001"]
+        assert s001.status is ShipmentStatus.DELIVERED
+        assert s001.delivered_day is not None
+        assert s001.delivered_day > 3  # released day 3 at the earliest, not day 1
 
 
 class TestEngineRejectsAnUndersizedEventTape:

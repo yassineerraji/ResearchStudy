@@ -1,9 +1,12 @@
-# Defines the normal logistics network, one product, initial inventory,
-# replenishment schedule, demand process, and shared cost parameters used by
-# the baseline experiment. It describes the world before temporary shocks.
+# The Compact topology tier (V2 CLAUDE.md §V2.3.1): Standard minus the
+# alternate port and its two edges. A primary-port disruption leaves REROUTE
+# structurally impossible here — only WAIT and EXPEDITE remain. Every shared
+# field is copied unchanged from baseline_network.yaml so any behavioral
+# difference versus Standard is attributable to route availability, not to
+# different per-edge economics.
 
 schema_version: 1
-network_id: baseline_network
+network_id: topology_compact
 
 units:
   quantity: units
@@ -35,15 +38,6 @@ nodes:
     longitude: null
     storage_capacity: 2000
     processing_capacity: 200
-    source_capacity: 0
-
-  - node_id: port_alternative
-    name: Alternative Port
-    node_type: PORT
-    latitude: null
-    longitude: null
-    storage_capacity: 1200
-    processing_capacity: 80
     source_capacity: 0
 
   - node_id: hub_1
@@ -85,28 +79,6 @@ edges:
     daily_capacity: 200
     unit_transport_cost: 8.00
     reliability: 0.94
-    emergency: false
-
-  - edge_id: supplier_to_alternative_port
-    origin_node_id: supplier_1
-    destination_node_id: port_alternative
-    mode: ROAD
-    distance_km: 650
-    base_lead_time_days: 4
-    daily_capacity: 60
-    unit_transport_cost: 7.00
-    reliability: 0.96
-    emergency: false
-
-  - edge_id: alternative_port_to_hub
-    origin_node_id: port_alternative
-    destination_node_id: hub_1
-    mode: SEA
-    distance_km: 6700
-    base_lead_time_days: 12
-    daily_capacity: 60
-    unit_transport_cost: 11.00
-    reliability: 0.93
     emergency: false
 
   - edge_id: hub_to_plant
@@ -152,9 +124,9 @@ replenishment_plan:
   first_release_day: 1
   release_every_days: 1
   shipment_quantity_mean: 40
-  shipment_quantity_std: 0
-  minimum_shipment_quantity: 40
-  maximum_shipment_quantity: 40
+  shipment_quantity_std: 6
+  minimum_shipment_quantity: 20
+  maximum_shipment_quantity: 55
   due_offset_days: 15
   initial_route_edge_ids:
     - supplier_to_primary_port

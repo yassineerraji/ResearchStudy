@@ -15,9 +15,13 @@ shocks:
     shock_type: NODE_CLOSURE
     target_type: NODE
     target_id: port_primary
-    physical_start_day: 21
-    physical_end_day: 41
-    information_day: 21
+    planned_start_day: 21
+    start_day_jitter_days: 0
+    minimum_duration_days: 21
+    duration_mean_days: 21
+    duration_std_days: 0
+    maximum_duration_days: 21
+    max_information_delay_days: 0
     capacity_multiplier: 1.0
     lead_time_multiplier: 1.0
     cost_multiplier: 1.0
@@ -26,9 +30,13 @@ shocks:
     shock_type: EDGE_LEAD_TIME_INCREASE
     target_type: EDGE
     target_id: alternative_port_to_hub
-    physical_start_day: 21
-    physical_end_day: 41
-    information_day: 21
+    planned_start_day: 21
+    start_day_jitter_days: 0
+    minimum_duration_days: 21
+    duration_mean_days: 21
+    duration_std_days: 0
+    maximum_duration_days: 21
+    max_information_delay_days: 0
     capacity_multiplier: 1.0
     lead_time_multiplier: 1.75
     cost_multiplier: 1.0

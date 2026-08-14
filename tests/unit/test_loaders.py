@@ -30,6 +30,7 @@ from supply_chain_simulator.data_io.loaders import (
     build_initial_state,
     build_network_definition,
     load_network_config,
+    load_scenario_config,
     resolve_config,
 )
 from supply_chain_simulator.domain.models import NodeType, TransportMode
@@ -51,7 +52,7 @@ edges:
   - {{edge_id: e1, origin_node_id: n1, destination_node_id: n2, mode: ROAD, distance_km: 1, base_lead_time_days: 1, daily_capacity: 10, unit_transport_cost: 1, reliability: 1.0, emergency: false}}
 initial_inventory: []
 demand_process: {{destination_node_id: n2, product_id: p1, distribution: TRUNCATED_NORMAL, mean_daily_demand: 1, standard_deviation: 0, minimum_daily_demand: 1, maximum_daily_demand: 1}}
-replenishment_plan: {{product_id: p1, origin_node_id: n1, destination_node_id: n2, first_release_day: 1, release_every_days: 1, shipment_quantity: 1, due_offset_days: 1, initial_route_edge_ids: [e1]}}
+replenishment_plan: {{product_id: p1, origin_node_id: n1, destination_node_id: n2, first_release_day: 1, release_every_days: 1, shipment_quantity_mean: 1, shipment_quantity_std: 0, minimum_shipment_quantity: 1, maximum_shipment_quantity: 1, due_offset_days: 1, initial_route_edge_ids: [e1]}}
 action_costs: {{reroute_cost_per_unit: 0, expedite_premium_per_unit: 0}}
 {extra}
 """
@@ -72,7 +73,7 @@ edges:
   - {{edge_id: e3, origin_node_id: n1, destination_node_id: n3, mode: AIR, distance_km: 1, base_lead_time_days: 1, daily_capacity: 10, unit_transport_cost: 1, reliability: 1.0, emergency: true}}
 initial_inventory: []
 demand_process: {{destination_node_id: n3, product_id: p1, distribution: TRUNCATED_NORMAL, mean_daily_demand: 1, standard_deviation: 0, minimum_daily_demand: 1, maximum_daily_demand: 1}}
-replenishment_plan: {{product_id: p1, origin_node_id: {origin}, destination_node_id: {destination}, first_release_day: 1, release_every_days: 1, shipment_quantity: 1, due_offset_days: 1, initial_route_edge_ids: [{route}]}}
+replenishment_plan: {{product_id: p1, origin_node_id: {origin}, destination_node_id: {destination}, first_release_day: 1, release_every_days: 1, shipment_quantity_mean: 1, shipment_quantity_std: 0, minimum_shipment_quantity: 1, maximum_shipment_quantity: 1, due_offset_days: 1, initial_route_edge_ids: [{route}]}}
 action_costs: {{reroute_cost_per_unit: 0, expedite_premium_per_unit: 0}}
 """
 
@@ -318,11 +319,33 @@ class TestShockConfigValidation:
         resolved = resolve_config(BASELINE_EXPERIMENT_CONFIG, REPO_ROOT)
         return resolved.scenario.shocks[0]
 
-    def test_end_before_start_rejected(self) -> None:
+    def test_minimum_duration_above_maximum_rejected(self) -> None:
         data = self._base_shock().model_dump()
-        data["physical_end_day"] = data["physical_start_day"] - 1
-        with pytest.raises(ValidationError, match="physical_end_day"):
+        data["minimum_duration_days"] = data["maximum_duration_days"] + 1
+        with pytest.raises(ValidationError, match="minimum_duration_days"):
             ShockConfig(**data)
+
+    def test_duration_mean_outside_bounds_rejected(self) -> None:
+        data = self._base_shock().model_dump()
+        data["duration_mean_days"] = data["maximum_duration_days"] + 1
+        with pytest.raises(ValidationError, match="duration_mean_days"):
+            ShockConfig(**data)
+
+    def test_v1_style_fixed_day_fields_rejected(self) -> None:
+        """V1-shaped shock configs (physical_start_day/physical_end_day/
+        information_day, no distribution fields) are not accepted: V2.2/V2.9
+        deliberately do not preserve V1 scenario-file compatibility.
+        """
+        with pytest.raises(ValidationError):
+            ShockConfig(
+                shock_id="close_primary_port",
+                shock_type="NODE_CLOSURE",
+                target_type="NODE",
+                target_id="port_primary",
+                physical_start_day=21,
+                physical_end_day=27,
+                information_day=21,
+            )
 
 
 class TestScenarioConfigValidation:
@@ -377,10 +400,30 @@ class TestResolvedConfigValidation:
         resolved = self._resolved()
         shock = resolved.scenario.shocks[0]
         early_shock = ShockConfig(
-            **{**shock.model_dump(), "physical_start_day": resolved.experiment.warmup_days}
+            **{**shock.model_dump(), "planned_start_day": resolved.experiment.warmup_days}
         )
         bad_scenario = ScenarioConfig(
             **{**resolved.scenario.model_dump(), "shocks": [early_shock.model_dump()]}
+        )
+        with pytest.raises(ValidationError, match="warmup_days"):
+            self._rebuild(resolved, bad_scenario)
+
+    def test_shock_worst_case_jitter_start_not_after_warmup_rejected(self) -> None:
+        """Even when planned_start_day is safely after warm-up, a jitter window
+        that could pull the realized start back onto/before warm-up is rejected
+        (V2 §V2.5: the check is against the worst case, not the nominal day).
+        """
+        resolved = self._resolved()
+        shock = resolved.scenario.shocks[0]
+        jittery_shock = ShockConfig(
+            **{
+                **shock.model_dump(),
+                "planned_start_day": resolved.experiment.warmup_days + 2,
+                "start_day_jitter_days": 3,
+            }
+        )
+        bad_scenario = ScenarioConfig(
+            **{**resolved.scenario.model_dump(), "shocks": [jittery_shock.model_dump()]}
         )
         with pytest.raises(ValidationError, match="warmup_days"):
             self._rebuild(resolved, bad_scenario)
@@ -492,3 +535,119 @@ class TestBuildInitialState:
             assert edge_state.capacity_multiplier == 1.0
             assert edge_state.lead_time_multiplier == 1.0
             assert edge_state.cost_multiplier == 1.0
+
+
+class TestReplenishmentPlanConfigValidation:
+    def test_minimum_above_maximum_rejected(self, tmp_path: Path) -> None:
+        text = _MINIMAL_NETWORK_YAML.format(extra="").replace(
+            "minimum_shipment_quantity: 1, maximum_shipment_quantity: 1",
+            "minimum_shipment_quantity: 5, maximum_shipment_quantity: 1",
+        )
+        path = tmp_path / "bad.yaml"
+        path.write_text(text)
+        with pytest.raises(ConfigurationError):
+            load_network_config(path)
+
+    def test_mean_outside_bounds_rejected(self, tmp_path: Path) -> None:
+        text = _MINIMAL_NETWORK_YAML.format(extra="").replace(
+            "shipment_quantity_mean: 1, shipment_quantity_std: 0, minimum_shipment_quantity: 1, "
+            "maximum_shipment_quantity: 1",
+            "shipment_quantity_mean: 10, shipment_quantity_std: 0, minimum_shipment_quantity: 1, "
+            "maximum_shipment_quantity: 1",
+        )
+        path = tmp_path / "bad.yaml"
+        path.write_text(text)
+        with pytest.raises(ConfigurationError):
+            load_network_config(path)
+
+    def test_zero_std_reproduces_fixed_quantity(self) -> None:
+        network = load_network_config(REPO_ROOT / "configs/networks/baseline_network.yaml")
+        plan = network.replenishment_plan
+        assert plan.shipment_quantity_mean == 40
+        assert plan.shipment_quantity_std == 0
+        assert plan.minimum_shipment_quantity == 40
+        assert plan.maximum_shipment_quantity == 40
+
+
+class TestTopologyTierConfigs:
+    """V2 §V2.3.1: topology tiers load into the exact node/edge counts and
+    values specified. Structural/connectivity proofs (reroute possible or
+    not) live in test_topology.py, not here.
+    """
+
+    def test_standard_tier_unchanged(self) -> None:
+        network = load_network_config(REPO_ROOT / "configs/networks/baseline_network.yaml")
+        assert len(network.nodes) == 5
+        assert len(network.edges) == 6
+
+    def test_compact_tier_loads(self) -> None:
+        network = load_network_config(REPO_ROOT / "configs/networks/topology_compact.yaml")
+        assert network.network_id == "topology_compact"
+        assert {node.node_id for node in network.nodes} == {
+            "supplier_1",
+            "port_primary",
+            "hub_1",
+            "plant_1",
+        }
+        assert len(network.nodes) == 4
+        assert len(network.edges) == 4
+        assert "port_alternative" not in {node.node_id for node in network.nodes}
+
+    def test_extended_tier_loads(self) -> None:
+        network = load_network_config(REPO_ROOT / "configs/networks/topology_extended.yaml")
+        assert network.network_id == "topology_extended"
+        assert {node.node_id for node in network.nodes} == {
+            "supplier_1",
+            "port_primary",
+            "port_alternative",
+            "port_tertiary",
+            "hub_1",
+            "hub_2",
+            "plant_1",
+        }
+        assert len(network.nodes) == 7
+        assert len(network.edges) == 10
+
+    def test_extended_and_compact_replenishment_plan_matches_standard(self) -> None:
+        standard = load_network_config(REPO_ROOT / "configs/networks/baseline_network.yaml")
+        for path in ("topology_compact.yaml", "topology_extended.yaml"):
+            network = load_network_config(REPO_ROOT / "configs/networks" / path)
+            assert network.demand_process == standard.demand_process
+            assert network.replenishment_plan.shipment_quantity_mean == (
+                standard.replenishment_plan.shipment_quantity_mean
+            )
+
+
+class TestExampleScenarioConfigs:
+    """V2 §V2.5's three example scenario configs load into the exact
+    expected ShockConfig objects, including event_group_id grouping.
+    """
+
+    def test_demand_spike_scenario_loads(self) -> None:
+        scenario = load_scenario_config(
+            REPO_ROOT / "configs/scenarios/demand_spike_before_peak_season.yaml"
+        )
+        shock = scenario.shocks[0]
+        assert shock.shock_type == "DEMAND_SPIKE"
+        assert shock.target_type == "DEMAND"
+        assert shock.target_id == "plant_1"
+        assert shock.demand_multiplier == pytest.approx(1.4)
+        assert shock.event_group_id is None
+
+    def test_supplier_capacity_shortfall_scenario_loads(self) -> None:
+        scenario = load_scenario_config(
+            REPO_ROOT / "configs/scenarios/supplier_capacity_shortfall.yaml"
+        )
+        shock = scenario.shocks[0]
+        assert shock.shock_type == "SUPPLIER_CAPACITY_REDUCTION"
+        assert shock.target_type == "NODE"
+        assert shock.target_id == "supplier_1"
+        assert shock.capacity_multiplier == pytest.approx(0.4)
+
+    def test_regional_disruption_event_shares_group_id(self) -> None:
+        scenario = load_scenario_config(REPO_ROOT / "configs/scenarios/regional_disruption_event.yaml")
+        assert len(scenario.shocks) == 2
+        group_ids = {shock.event_group_id for shock in scenario.shocks}
+        assert group_ids == {"regional_event_2026_a"}
+        shock_ids = {shock.shock_id for shock in scenario.shocks}
+        assert shock_ids == {"regional_port_closure", "regional_supplier_shortfall"}

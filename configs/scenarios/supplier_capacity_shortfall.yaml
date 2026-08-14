@@ -1,0 +1,18 @@
+schema_version: 1
+scenario_id: supplier_capacity_shortfall
+description: Supplier's own release capacity is cut by 60% for roughly two weeks, with genuine timing and duration uncertainty.
+
+shocks:
+  - shock_id: supplier_output_shortfall
+    shock_type: SUPPLIER_CAPACITY_REDUCTION
+    target_type: NODE
+    target_id: supplier_1
+    planned_start_day: 21
+    start_day_jitter_days: 4
+    minimum_duration_days: 7
+    duration_mean_days: 14
+    duration_std_days: 4
+    maximum_duration_days: 25
+    max_information_delay_days: 3
+    capacity_multiplier: 0.4
+    event_group_id: null

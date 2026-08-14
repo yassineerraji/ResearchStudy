@@ -1,0 +1,20 @@
+schema_version: 1
+scenario_id: demand_spike_before_peak_season
+description: >
+  A realistic demand-side shock: a temporary 40% demand spike with an
+  uncertain, jittered start day and a duration that isn't known in advance.
+
+shocks:
+  - shock_id: seasonal_demand_spike
+    shock_type: DEMAND_SPIKE
+    target_type: DEMAND
+    target_id: plant_1
+    planned_start_day: 25
+    start_day_jitter_days: 3
+    minimum_duration_days: 5
+    duration_mean_days: 10
+    duration_std_days: 3
+    maximum_duration_days: 18
+    max_information_delay_days: 2
+    demand_multiplier: 1.4
+    event_group_id: null

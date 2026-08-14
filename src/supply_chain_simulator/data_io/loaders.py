@@ -5,9 +5,12 @@ and experiment YAML files under configs/ into typed, validated Pydantic
 models, resolves the file paths an experiment references relative to that
 experiment file, and combines everything into one ResolvedConfig. It then
 converts a validated NetworkConfig into the frozen NetworkDefinition (Node,
-Edge, Product) the simulation actually runs on, builds the day-0
-SimulationState from it, and converts a ScenarioConfig's shocks into frozen
-Shock domain objects. In the full system, this is the place a malformed,
+Edge, Product) the simulation actually runs on and builds the day-0
+SimulationState from it. A ScenarioConfig's shocks are *templates*
+(V2 §V2.3.3) — turning one into a concrete, realized Shock domain object is
+experiments/event_tape.py's job, not this module's, since realization draws
+from a per-replication random stream this module never sees. In the full
+system, this is the place a malformed,
 incomplete, or internally inconsistent configuration is caught and reported
 before any simulation code runs, and the only place configuration data turns
 into domain objects. It does not perform the deeper graph-reachability
@@ -35,7 +38,6 @@ from pydantic import (
     model_validator,
 )
 
-from supply_chain_simulator.domain.events import Shock, ShockType, TargetType
 from supply_chain_simulator.domain.models import (
     Edge,
     NetworkDefinition,
@@ -146,9 +148,27 @@ class ReplenishmentPlanConfig(_StrictModel):
     destination_node_id: IdentifierStr
     first_release_day: PositiveInt
     release_every_days: PositiveInt
-    shipment_quantity: PositiveInt
+    shipment_quantity_mean: PositiveFloat
+    shipment_quantity_std: NonNegativeFloat = 0.0
+    minimum_shipment_quantity: PositiveInt
+    maximum_shipment_quantity: PositiveInt
     due_offset_days: PositiveInt
     initial_route_edge_ids: Annotated[list[IdentifierStr], Field(min_length=1)]
+
+    @model_validator(mode="after")
+    def _validate_quantity_bounds(self) -> ReplenishmentPlanConfig:
+        if self.minimum_shipment_quantity > self.maximum_shipment_quantity:
+            raise ValueError("minimum_shipment_quantity must not exceed maximum_shipment_quantity")
+        if not (
+            self.minimum_shipment_quantity
+            <= self.shipment_quantity_mean
+            <= self.maximum_shipment_quantity
+        ):
+            raise ValueError(
+                "shipment_quantity_mean must fall within [minimum_shipment_quantity, "
+                "maximum_shipment_quantity]"
+            )
+        return self
 
 
 class ActionCostsConfig(_StrictModel):
@@ -252,6 +272,14 @@ class NetworkConfig(_StrictModel):
 
 
 class ShockConfig(_StrictModel):
+    """A shock *template* (V2 §V2.3.3): realization draws a concrete Shock
+    (physical_start_day/physical_end_day/information_day) from these
+    distribution parameters once per replication, in experiments/event_tape.py.
+    All-zero uncertainty fields (start_day_jitter_days=0, duration_std_days=0,
+    max_information_delay_days=0, minimum_duration_days=duration_mean_days=
+    maximum_duration_days) reproduce a V1-style fixed shock exactly.
+    """
+
     shock_id: IdentifierStr
     shock_type: Literal[
         "NODE_CLOSURE",
@@ -260,20 +288,31 @@ class ShockConfig(_StrictModel):
         "EDGE_CAPACITY_REDUCTION",
         "EDGE_LEAD_TIME_INCREASE",
         "EDGE_COST_INCREASE",
+        "DEMAND_SPIKE",
+        "DEMAND_DROP",
+        "SUPPLIER_CAPACITY_REDUCTION",
     ]
-    target_type: Literal["NODE", "EDGE"]
+    target_type: Literal["NODE", "EDGE", "DEMAND"]
     target_id: IdentifierStr
-    physical_start_day: PositiveInt
-    physical_end_day: PositiveInt
-    information_day: PositiveInt
+    planned_start_day: PositiveInt
+    start_day_jitter_days: NonNegativeInt = 0
+    minimum_duration_days: PositiveInt
+    duration_mean_days: PositiveFloat
+    duration_std_days: NonNegativeFloat = 0.0
+    maximum_duration_days: PositiveInt
+    max_information_delay_days: NonNegativeInt = 0
     capacity_multiplier: NonNegativeFloat = 1.0
     lead_time_multiplier: NonNegativeFloat = 1.0
     cost_multiplier: NonNegativeFloat = 1.0
+    demand_multiplier: NonNegativeFloat = 1.0
+    event_group_id: str | None = None
 
     @model_validator(mode="after")
-    def _validate_day_range(self) -> ShockConfig:
-        if self.physical_end_day < self.physical_start_day:
-            raise ValueError("physical_end_day must be >= physical_start_day")
+    def _validate_duration_bounds(self) -> ShockConfig:
+        if self.minimum_duration_days > self.maximum_duration_days:
+            raise ValueError("minimum_duration_days must not exceed maximum_duration_days")
+        if not (self.minimum_duration_days <= self.duration_mean_days <= self.maximum_duration_days):
+            raise ValueError("duration_mean_days must fall within [minimum_duration_days, maximum_duration_days]")
         return self
 
 
@@ -387,10 +426,13 @@ class ResolvedConfig(_StrictModel):
         node_ids = {node.node_id for node in self.network.nodes}
         edge_ids = {edge.edge_id for edge in self.network.edges}
         for shock in self.scenario.shocks:
-            if shock.physical_start_day <= self.experiment.warmup_days:
+            earliest_possible_start = shock.planned_start_day - shock.start_day_jitter_days
+            if earliest_possible_start <= self.experiment.warmup_days:
                 raise ValueError(
-                    f"shock {shock.shock_id} starts on day "
-                    f"{shock.physical_start_day}, which is not after "
+                    f"shock {shock.shock_id}: earliest possible realized start day "
+                    f"{earliest_possible_start} (planned_start_day="
+                    f"{shock.planned_start_day} minus start_day_jitter_days="
+                    f"{shock.start_day_jitter_days}) is not after "
                     f"warmup_days={self.experiment.warmup_days}"
                 )
             if shock.target_type == "NODE" and shock.target_id not in node_ids:
@@ -400,6 +442,11 @@ class ResolvedConfig(_StrictModel):
             if shock.target_type == "EDGE" and shock.target_id not in edge_ids:
                 raise ValueError(
                     f"shock {shock.shock_id} targets unknown edge {shock.target_id}"
+                )
+            if shock.target_type == "DEMAND" and shock.target_id not in node_ids:
+                raise ValueError(
+                    f"shock {shock.shock_id} targets unknown demand destination "
+                    f"{shock.target_id}"
                 )
         return self
 
@@ -583,22 +630,4 @@ def build_initial_state(
         service=ServiceCounters(),
         daily_edge_used_capacity=dict.fromkeys(network_definition.edges, 0),
         daily_node_used_processing=dict.fromkeys(network_definition.nodes, 0),
-    )
-
-
-def build_shocks(scenario_config: ScenarioConfig) -> tuple[Shock, ...]:
-    return tuple(
-        Shock(
-            shock_id=shock.shock_id,
-            shock_type=ShockType(shock.shock_type),
-            target_type=TargetType(shock.target_type),
-            target_id=shock.target_id,
-            physical_start_day=shock.physical_start_day,
-            physical_end_day=shock.physical_end_day,
-            information_day=shock.information_day,
-            capacity_multiplier=shock.capacity_multiplier,
-            lead_time_multiplier=shock.lead_time_multiplier,
-            cost_multiplier=shock.cost_multiplier,
-        )
-        for shock in scenario_config.shocks
     )

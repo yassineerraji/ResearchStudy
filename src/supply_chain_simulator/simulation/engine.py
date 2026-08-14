@@ -186,11 +186,8 @@ class SimulationEngine:
                     f"{start_day}..{max_day})"
                 )
             day_events = events_by_day[day]
-            total_released += sum(
-                event.quantity for event in day_events.shipment_release_events
-            )
 
-            metrics, delivered_count = self._process_day(
+            metrics, delivered_count, total_released = self._process_day(
                 state,
                 day_events,
                 decision_enabled,
@@ -242,13 +239,13 @@ class SimulationEngine:
         expedite_premium_per_unit: float,
         previous_delivered_count: int,
         initial_committed_total: int,
-        total_released: int,
+        total_released_before_today: int,
         policy: Policy | None,
         fallback_policy: Policy | None,
         mean_daily_demand: float,
         decision_trace_sink: list[DecisionTraceEntry] | None,
         llm_interaction_sink: list[LLMInteractionResult] | None,
-    ) -> tuple[DailyMetrics, int]:
+    ) -> tuple[DailyMetrics, int, int]:
         # 1. Begin day.
         state.day = day_events.day
         transition.reset_daily_capacity_usage(state)
@@ -263,8 +260,11 @@ class SimulationEngine:
         # 4. Process arrivals.
         transition.process_due_arrivals(state)
 
-        # 5. Release scheduled shipments.
-        transition.release_shipments(state, day_events.shipment_release_events)
+        # 5. Release scheduled shipments. A release may defer instead of
+        # succeeding (V2 §V2.3.7), so total_released only grows by what
+        # actually entered the system today, not by what was merely scheduled.
+        released_today = transition.release_shipments(state, day_events.shipment_release_events)
+        total_released = total_released_before_today + released_today
 
         # 6. Realize and fulfil demand.
         demand_result = transition.fulfil_backlog_and_demand(
@@ -318,7 +318,7 @@ class SimulationEngine:
         delivered_count = self._assert_invariants(
             state, previous_delivered_count, initial_committed_total, total_released
         )
-        return metrics, delivered_count
+        return metrics, delivered_count, total_released
 
     def _resolve_triggered_shipments(
         self,

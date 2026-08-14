@@ -1,13 +1,14 @@
 """Unit tests for experiments/event_tape.py: reproducibility and pairing.
 
 Inside tests/unit, this file checks that stream-seed derivation, demand
-generation, edge-delay generation, and shipment-release generation are all
-deterministic given a fixed seed, that a built EventTape reflects the tiny
-fixture's scenario correctly (shock conversion, known-shock-id timing, day
-coverage through the drain period), and that the undisrupted tape produced
-from a disrupted one differs only in its shocks. It does not test how these
-events are later applied to a SimulationState, since the engine does not
-exist yet at this stage of the build.
+generation, edge-delay generation, shipment-release generation, and shock
+template realization (V2 §V2.3.3/§V2.3.4) are all deterministic given a
+fixed seed, that a built EventTape reflects the tiny fixture's scenario
+correctly (shock realization, known-shock-id timing, day coverage through
+the drain period), and that the undisrupted tape produced from a disrupted
+one differs only in its shocks. It does not test how these events are later
+applied to a SimulationState, since the engine does not exist yet at this
+stage of the build.
 """
 
 from __future__ import annotations
@@ -19,21 +20,29 @@ import pytest
 
 from supply_chain_simulator.data_io.loaders import (
     ReplenishmentPlanConfig,
+    ScenarioConfig,
+    ShockConfig,
     build_network_definition,
     load_network_config,
     load_scenario_config,
 )
-from supply_chain_simulator.domain.events import EventTape, ShockType, TargetType
+from supply_chain_simulator.domain.events import EventTape, Shock, ShockType, TargetType
 from supply_chain_simulator.domain.models import NetworkDefinition
 from supply_chain_simulator.experiments.event_tape import (
     DEMAND_STREAM,
     EDGE_DELAYS_STREAM,
+    RELEASE_QUANTITY_STREAM,
+    SHOCK_REALIZATION_STREAM,
     build_disrupted_event_tape,
     build_undisrupted_event_tape,
     derive_stream_seed,
     generate_demand_events,
     generate_edge_delay_draws,
     generate_shipment_release_events,
+    realize_all_shocks,
+    realize_release_quantity,
+    realize_shock,
+    realize_shock_group,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -91,6 +100,45 @@ class TestGenerateDemandEvents:
         )
         assert first == second
 
+    def test_demand_shock_scales_mean_and_bounds_without_changing_draw_count(self) -> None:
+        """V2 §V2.3.6: a demand shock changes what the demand stream's single
+        per-day gauss() draw is centered around, not how many draws happen.
+        """
+        demand_process = load_network_config(TINY_NETWORK_CONFIG).demand_process.model_copy(
+            update={"standard_deviation": 1.0}
+        )
+        unshocked = generate_demand_events(
+            demand_process, horizon_days=5, rng=random.Random(derive_stream_seed(9, DEMAND_STREAM))
+        )
+
+        demand_shock = Shock(
+            shock_id="demand_spike",
+            shock_type=ShockType.DEMAND_SPIKE,
+            target_type=TargetType.DEMAND,
+            target_id="plant_1",
+            physical_start_day=2,
+            physical_end_day=3,
+            information_day=2,
+            demand_multiplier=2.0,
+        )
+        shocked = generate_demand_events(
+            demand_process,
+            horizon_days=5,
+            rng=random.Random(derive_stream_seed(9, DEMAND_STREAM)),
+            demand_shocks=(demand_shock,),
+        )
+
+        assert len(shocked) == len(unshocked) == 5
+        # Days outside the shock window are completely unaffected.
+        assert shocked[0] == unshocked[0]
+        assert shocked[3] == unshocked[3]
+        assert shocked[4] == unshocked[4]
+        # Days inside the window scale with the multiplier (mean 5 -> 10,
+        # zero variance in this fixture would normally clamp to it exactly,
+        # but standard_deviation is 1.0 here so we only assert the bound moved).
+        assert shocked[1].quantity != unshocked[1].quantity or shocked[1].quantity >= 5
+        assert shocked[1].day == 2 and shocked[2].day == 3
+
 
 class TestGenerateEdgeDelayDraws:
     def test_fully_reliable_edges_never_delay(self) -> None:
@@ -118,8 +166,13 @@ class TestGenerateShipmentReleaseEvents:
     def _plan(self) -> ReplenishmentPlanConfig:
         return load_network_config(TINY_NETWORK_CONFIG).replenishment_plan
 
+    def _rng(self, replication: int = 1) -> random.Random:
+        return random.Random(derive_stream_seed(replication, RELEASE_QUANTITY_STREAM))
+
     def test_one_release_per_day_within_horizon(self) -> None:
-        events = generate_shipment_release_events(self._plan(), horizon_days=3)
+        events = generate_shipment_release_events(
+            self._plan(), horizon_days=3, network_definition=_tiny_network_definition(), rng=self._rng()
+        )
         assert [event.day for event in events] == [1, 2, 3]
         assert [event.shipment_id for event in events] == [
             "shipment_001_001",
@@ -134,8 +187,164 @@ class TestGenerateShipmentReleaseEvents:
 
     def test_no_releases_after_horizon(self) -> None:
         plan = self._plan().model_copy(update={"first_release_day": 10})
-        events = generate_shipment_release_events(plan, horizon_days=5)
+        events = generate_shipment_release_events(
+            plan, horizon_days=5, network_definition=_tiny_network_definition(), rng=self._rng()
+        )
         assert events == ()
+
+    def test_quantity_clamped_to_route_feasibility_ceiling(self) -> None:
+        """A drawn quantity above the route's static edge/node capacity
+        (V2 §V2.3.5) is clamped down, even if it's within the configured
+        [minimum_shipment_quantity, maximum_shipment_quantity] bounds.
+        """
+        plan = self._plan().model_copy(
+            update={
+                "shipment_quantity_mean": 20,
+                "shipment_quantity_std": 0,
+                "minimum_shipment_quantity": 20,
+                "maximum_shipment_quantity": 20,
+            }
+        )
+        # supplier_to_hub's daily_capacity is 20 in the tiny fixture; a route
+        # requiring exactly that stays feasible, but hub_1's processing_capacity
+        # (50) and every other route capacity are >= 20, so 20 survives here.
+        # Push the requested quantity above every route capacity instead.
+        plan = plan.model_copy(
+            update={
+                "shipment_quantity_mean": 999,
+                "shipment_quantity_std": 0,
+                "minimum_shipment_quantity": 999,
+                "maximum_shipment_quantity": 999,
+            }
+        )
+        events = generate_shipment_release_events(
+            plan, horizon_days=1, network_definition=_tiny_network_definition(), rng=self._rng()
+        )
+        assert events[0].quantity == 20
+
+    def test_same_seed_reproduces_identical_quantities(self) -> None:
+        plan = self._plan().model_copy(
+            update={"shipment_quantity_mean": 5, "shipment_quantity_std": 2, "maximum_shipment_quantity": 10}
+        )
+        first = generate_shipment_release_events(
+            plan, horizon_days=10, network_definition=_tiny_network_definition(), rng=self._rng(3)
+        )
+        second = generate_shipment_release_events(
+            plan, horizon_days=10, network_definition=_tiny_network_definition(), rng=self._rng(3)
+        )
+        assert first == second
+
+
+class TestRealizeReleaseQuantity:
+    def test_zero_std_reproduces_fixed_mean(self) -> None:
+        rng = random.Random(1)
+        assert realize_release_quantity(40, 0, 20, 55, rng) == 40
+
+    def test_clamped_to_bounds(self) -> None:
+        rng = random.Random(1)
+        assert realize_release_quantity(1000, 0, 20, 55, rng) == 55
+
+
+class TestShockRealization:
+    def _template(self, **overrides: object) -> ShockConfig:
+        base: dict[str, object] = {
+            "shock_id": "s1",
+            "shock_type": "NODE_CLOSURE",
+            "target_type": "NODE",
+            "target_id": "port_primary",
+            "planned_start_day": 25,
+            "start_day_jitter_days": 3,
+            "minimum_duration_days": 5,
+            "duration_mean_days": 10,
+            "duration_std_days": 3,
+            "maximum_duration_days": 18,
+            "max_information_delay_days": 2,
+        }
+        base.update(overrides)
+        return ShockConfig(**base)  # type: ignore[arg-type]
+
+    def test_all_zero_uncertainty_reproduces_fixed_shock(self) -> None:
+        template = self._template(
+            planned_start_day=21,
+            start_day_jitter_days=0,
+            minimum_duration_days=7,
+            duration_mean_days=7,
+            duration_std_days=0,
+            maximum_duration_days=7,
+            max_information_delay_days=0,
+        )
+        shock = realize_shock(template, random.Random(1))
+        assert shock.physical_start_day == 21
+        assert shock.physical_end_day == 27
+        assert shock.information_day == 21
+
+    def test_deterministic_for_fixed_stream_seed(self) -> None:
+        template = self._template()
+        first = realize_shock(template, random.Random(42))
+        second = realize_shock(template, random.Random(42))
+        assert first == second
+
+    def test_draw_order_is_jitter_then_duration_then_information_delay(self) -> None:
+        """A stream that only ever returns 0 for randint and the mean for
+        gauss lets us confirm each formula consumes the RNG in the documented
+        order without depending on the exact underlying draw values.
+        """
+        template = self._template(
+            planned_start_day=25, start_day_jitter_days=5, max_information_delay_days=4
+        )
+        rng = random.Random(7)
+        shock = realize_shock(template, rng)
+        # physical_start_day must fall within the jitter window, duration
+        # within its bounds, and information_day within [start, end] -- this
+        # exercises all three draws happening, in the documented order.
+        assert 20 <= shock.physical_start_day <= 30
+        assert 5 <= (shock.physical_end_day - shock.physical_start_day + 1) <= 18
+        assert shock.physical_start_day <= shock.information_day <= shock.physical_end_day
+
+    def test_group_shares_one_jitter_draw_but_independent_duration_and_delay(self) -> None:
+        member_a = self._template(shock_id="a", planned_start_day=22, event_group_id="g1")
+        member_b = self._template(
+            shock_id="b",
+            planned_start_day=22,
+            duration_mean_days=14,
+            minimum_duration_days=7,
+            maximum_duration_days=25,
+            event_group_id="g1",
+        )
+        realized = realize_shock_group([member_b, member_a], random.Random(5))
+        realized_a, realized_b = (s for s in realized if s.shock_id == "a"), (
+            s for s in realized if s.shock_id == "b"
+        )
+        shock_a = next(realized_a)
+        shock_b = next(realized_b)
+        assert (shock_a.physical_start_day - 22) == (shock_b.physical_start_day - 22)
+        # durations were drawn independently from different distributions,
+        # so they need not (and, given the differing means, should not) match.
+        assert (shock_a.physical_end_day - shock_a.physical_start_day) != (
+            shock_b.physical_end_day - shock_b.physical_start_day
+        )
+
+    def test_realize_all_shocks_orders_groups_before_ungrouped(self) -> None:
+        scenario = ScenarioConfig(
+            schema_version=1,
+            scenario_id="s",
+            description="d",
+            shocks=[
+                self._template(shock_id="z_ungrouped", event_group_id=None),
+                self._template(shock_id="b1", event_group_id="group_b"),
+                self._template(shock_id="a1", event_group_id="group_a"),
+            ],
+        )
+        realized_grouped_first = realize_all_shocks(scenario, random.Random(1))
+        realized_grouped_again = realize_all_shocks(scenario, random.Random(1))
+        assert realized_grouped_first == realized_grouped_again
+        assert {shock.shock_id for shock in realized_grouped_first} == {"z_ungrouped", "b1", "a1"}
+
+    def test_shock_realization_stream_distinct_from_others(self) -> None:
+        seed = derive_stream_seed(1, SHOCK_REALIZATION_STREAM)
+        assert seed != derive_stream_seed(1, DEMAND_STREAM)
+        assert seed != derive_stream_seed(1, EDGE_DELAYS_STREAM)
+        assert seed != derive_stream_seed(1, RELEASE_QUANTITY_STREAM)
 
 
 class TestBuildDisruptedEventTape:

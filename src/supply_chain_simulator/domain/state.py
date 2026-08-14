@@ -18,6 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
+from supply_chain_simulator.domain.events import ShipmentReleaseEvent
 from supply_chain_simulator.domain.models import NetworkDefinition
 
 
@@ -33,6 +34,7 @@ class ShipmentStatus(Enum):
 class OperationalNodeState:
     available: bool = True
     processing_capacity_multiplier: float = 1.0
+    source_capacity_multiplier: float = 1.0
 
 
 @dataclass(slots=True)
@@ -142,6 +144,7 @@ class SimulationState:
     daily_node_used_processing: dict[str, int] = field(default_factory=dict)
     pre_shock_inventory: dict[str, dict[str, int]] = field(default_factory=dict)
     pre_shock_backlog: dict[str, dict[str, int]] = field(default_factory=dict)
+    pending_releases: list[ShipmentReleaseEvent] = field(default_factory=list)
 
 
 @dataclass(frozen=True, slots=True)
