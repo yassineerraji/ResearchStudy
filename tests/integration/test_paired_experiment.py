@@ -622,20 +622,23 @@ class TestCompoundEventUndisruptedTapeStripping:
 
 
 def _topology_resolved_config(
-    network_filename: str, *, replications: int, base_seed: int
+    network_filename: str, scenario_filename: str, *, replications: int, base_seed: int
 ) -> ResolvedConfig:
     """A ResolvedConfig built directly from a real topology-tier network file
-    plus the real port_closure.yaml scenario (target_id port_primary exists
-    in every tier by construction, V2 §V2.3.1), with a shortened horizon so
-    the smoke test runs quickly.
+    plus its real, tier-appropriate severity scenario, with a shortened
+    horizon so the smoke test runs quickly. Extended pairs with
+    hub_closure_extended.yaml rather than port_closure.yaml: V2 §V2.3.1's
+    betweenness-centrality analysis found port_primary is no longer
+    Extended's critical node, so port_closure.yaml would be a near-meaningless
+    disruption there (only 1 of 7 non-emergency paths lost).
     """
     network_path = REPO_ROOT / "configs/networks" / network_filename
-    scenario_path = REPO_ROOT / "configs/scenarios/port_closure.yaml"
+    scenario_path = REPO_ROOT / "configs/scenarios" / scenario_filename
     experiment_config = ExperimentConfig(
         schema_version=1,
         experiment_id="topology_smoke_test",
         network_config=network_filename,
-        scenario_config="port_closure.yaml",
+        scenario_config=scenario_filename,
         policy_configs=PolicyConfigPathsConfig(
             heuristic="heuristic.yaml", llm_agent="llm_agent.yaml"
         ),
@@ -676,11 +679,19 @@ class TestFullPairedRunPerTopologyTier:
     """
 
     @pytest.mark.parametrize(
-        "network_filename",
-        ["topology_compact.yaml", "baseline_network.yaml", "topology_extended.yaml"],
+        ("network_filename", "scenario_filename"),
+        [
+            ("topology_compact.yaml", "port_closure.yaml"),
+            ("baseline_network.yaml", "port_closure.yaml"),
+            ("topology_extended.yaml", "hub_closure_extended.yaml"),
+        ],
     )
-    def test_tier_completes_with_valid_tcd(self, network_filename: str, tmp_path: Path) -> None:
-        resolved_config = _topology_resolved_config(network_filename, replications=1, base_seed=900)
+    def test_tier_completes_with_valid_tcd(
+        self, network_filename: str, scenario_filename: str, tmp_path: Path
+    ) -> None:
+        resolved_config = _topology_resolved_config(
+            network_filename, scenario_filename, replications=1, base_seed=900
+        )
         runner = ExperimentRunner(
             heuristic_policy=_heuristic_from(resolved_config),
             heuristic_fallback_policy=WaitFallbackPolicy(),

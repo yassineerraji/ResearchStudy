@@ -140,6 +140,48 @@ class TestGenerateDemandEvents:
         assert shocked[1].day == 2 and shocked[2].day == 3
 
 
+    def test_demand_spike_and_drop_are_correctly_directioned(self) -> None:
+        """V2.11's acceptance bar requires DEMAND_SPIKE *and* DEMAND_DROP to
+        each produce a measurable, correctly-directioned effect -- exercised
+        here with the tiny fixture's zero-variance demand (mean=min=max=5)
+        so both directions are exact, hand-verifiable numbers, not just
+        'different from baseline'.
+        """
+        demand_process = load_network_config(TINY_NETWORK_CONFIG).demand_process
+
+        def _shock(shock_id: str, shock_type: ShockType, multiplier: float) -> Shock:
+            return Shock(
+                shock_id=shock_id,
+                shock_type=shock_type,
+                target_type=TargetType.DEMAND,
+                target_id="plant_1",
+                physical_start_day=2,
+                physical_end_day=2,
+                information_day=2,
+                demand_multiplier=multiplier,
+            )
+
+        spiked = generate_demand_events(
+            demand_process,
+            horizon_days=3,
+            rng=random.Random(derive_stream_seed(1, DEMAND_STREAM)),
+            demand_shocks=(_shock("spike", ShockType.DEMAND_SPIKE, 2.0),),
+        )
+        dropped = generate_demand_events(
+            demand_process,
+            horizon_days=3,
+            rng=random.Random(derive_stream_seed(1, DEMAND_STREAM)),
+            demand_shocks=(_shock("drop", ShockType.DEMAND_DROP, 0.4),),
+        )
+
+        # Day 2 is inside the shock window; days 1 and 3 are unaffected (base
+        # demand is a fixed 5 units/day in this fixture).
+        assert spiked[0].quantity == 5 and dropped[0].quantity == 5
+        assert spiked[1].quantity == 10  # 5 * 2.0
+        assert dropped[1].quantity == 2  # 5 * 0.4
+        assert spiked[2].quantity == 5 and dropped[2].quantity == 5
+
+
 class TestGenerateEdgeDelayDraws:
     def test_fully_reliable_edges_never_delay(self) -> None:
         network_definition = _tiny_network_definition()

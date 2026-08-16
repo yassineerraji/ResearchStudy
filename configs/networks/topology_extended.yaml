@@ -1,9 +1,17 @@
-# The Extended topology tier (V2 CLAUDE.md §V2.3.1): Standard plus a third
-# port and a second hub, giving genuine mesh redundancy -- two viable
-# multi-hop alternatives to the primary route instead of Standard's one.
-# supplier_1 and plant_1 are identical to Standard/Compact by construction;
-# every edge shared with Standard keeps Standard's exact values, renamed
-# only where a second hub required disambiguating the edge id.
+# The Extended topology tier (V2 CLAUDE.md §V2.3.1): 4 ports and 4 hubs
+# forming a genuine overlapping mesh -- 7 non-emergency supplier-to-plant
+# paths (plus the emergency air lane), all <= 3 edges. supplier_1 and
+# plant_1 are identical to Standard/Compact by construction; every edge
+# shared with earlier revisions of this tier keeps its exact values, and
+# new edges extrapolate the same per-mode cost/distance/reliability trend
+# (longer distance -> higher cost/lead-time, slightly lower reliability).
+#
+# Betweenness centrality (networkx.betweenness_centrality) on this graph
+# shows port_primary is now one of the *least* central nodes (tied lowest
+# with hub_4), while hub_1 is tied for *most* central -- closing
+# port_primary kills only 1 of 7 non-emergency paths, closing hub_1 kills 2
+# of 7. Severity scenarios for this tier therefore target hub_1
+# (configs/scenarios/hub_closure_extended.yaml), not port_primary.
 
 schema_version: 1
 network_id: topology_extended
@@ -58,6 +66,15 @@ nodes:
     processing_capacity: 90
     source_capacity: 0
 
+  - node_id: port_quaternary
+    name: Quaternary Port
+    node_type: PORT
+    latitude: null
+    longitude: null
+    storage_capacity: 1000
+    processing_capacity: 70
+    source_capacity: 0
+
   - node_id: hub_1
     name: Import Hub
     node_type: HUB
@@ -74,6 +91,24 @@ nodes:
     longitude: null
     storage_capacity: 1500
     processing_capacity: 150
+    source_capacity: 0
+
+  - node_id: hub_3
+    name: Tertiary Hub
+    node_type: HUB
+    latitude: null
+    longitude: null
+    storage_capacity: 1300
+    processing_capacity: 130
+    source_capacity: 0
+
+  - node_id: hub_4
+    name: Quaternary Hub
+    node_type: HUB
+    latitude: null
+    longitude: null
+    storage_capacity: 1100
+    processing_capacity: 110
     source_capacity: 0
 
   - node_id: plant_1
@@ -117,6 +152,17 @@ edges:
     daily_capacity: 60
     unit_transport_cost: 8.50
     reliability: 0.95
+    emergency: false
+
+  - edge_id: supplier_to_quaternary_port
+    origin_node_id: supplier_1
+    destination_node_id: port_quaternary
+    mode: ROAD
+    distance_km: 950
+    base_lead_time_days: 6
+    daily_capacity: 55
+    unit_transport_cost: 9.50
+    reliability: 0.94
     emergency: false
 
   - edge_id: primary_port_to_hub_1
@@ -163,6 +209,39 @@ edges:
     reliability: 0.93
     emergency: false
 
+  - edge_id: tertiary_port_to_hub_3
+    origin_node_id: port_tertiary
+    destination_node_id: hub_3
+    mode: SEA
+    distance_km: 6400
+    base_lead_time_days: 11
+    daily_capacity: 55
+    unit_transport_cost: 10.50
+    reliability: 0.93
+    emergency: false
+
+  - edge_id: quaternary_port_to_hub_3
+    origin_node_id: port_quaternary
+    destination_node_id: hub_3
+    mode: SEA
+    distance_km: 6600
+    base_lead_time_days: 12
+    daily_capacity: 50
+    unit_transport_cost: 11.50
+    reliability: 0.92
+    emergency: false
+
+  - edge_id: quaternary_port_to_hub_4
+    origin_node_id: port_quaternary
+    destination_node_id: hub_4
+    mode: SEA
+    distance_km: 6900
+    base_lead_time_days: 13
+    daily_capacity: 50
+    unit_transport_cost: 12.00
+    reliability: 0.92
+    emergency: false
+
   - edge_id: hub_1_to_plant
     origin_node_id: hub_1
     destination_node_id: plant_1
@@ -183,6 +262,28 @@ edges:
     daily_capacity: 100
     unit_transport_cost: 3.50
     reliability: 0.97
+    emergency: false
+
+  - edge_id: hub_3_to_plant
+    origin_node_id: hub_3
+    destination_node_id: plant_1
+    mode: ROAD
+    distance_km: 400
+    base_lead_time_days: 3
+    daily_capacity: 90
+    unit_transport_cost: 4.00
+    reliability: 0.96
+    emergency: false
+
+  - edge_id: hub_4_to_plant
+    origin_node_id: hub_4
+    destination_node_id: plant_1
+    mode: ROAD
+    distance_km: 450
+    base_lead_time_days: 4
+    daily_capacity: 80
+    unit_transport_cost: 4.50
+    reliability: 0.95
     emergency: false
 
   - edge_id: supplier_to_plant_air

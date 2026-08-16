@@ -257,9 +257,9 @@ Everything else in V1 §1's non-goals list **stays excluded** — V2 does not in
 
 Three fixed network topologies, independent of and crossed with the three severity tiers (V2.8). **Naming is deliberately distinct from the severity tiers** ("Light/Medium/Heavy") to prevent the two axes from ever being confused in code, config, output files, or conversation: topology tiers are named **Compact / Standard / Extended**.
 
-- **Standard** is V1's existing, unmodified `configs/networks/baseline_network.yaml` (5 nodes, 6 edges) — kept byte-identical so every V1 result remains a valid, comparable reference point inside the V2 grid (it is exactly the "Standard × Medium" cell).
+- **Standard** is V1's existing, unmodified `configs/networks/baseline_network.yaml` (5 nodes, 6 edges) — kept byte-identical so every V1 result remains a valid, comparable reference point inside the V2 grid (it is exactly the "Standard × Medium" cell). This is treated as non-negotiable: resizing Standard would break the one direct link back to V1's real, published, audited 100-replication experiment.
 - **Compact** removes the alternate port entirely, so a primary-port disruption leaves REROUTE structurally impossible — only WAIT and EXPEDITE remain, a deliberately more constrained decision environment than Standard.
-- **Extended** adds a third port and a second hub, giving genuine mesh redundancy — two viable multi-hop alternatives to the primary route instead of Standard's one.
+- **Extended** is a genuine large-scale mesh — 4 ports and 4 hubs (10 nodes, 16 edges) giving 7 structurally distinct non-emergency supplier→plant paths, widened from an earlier, narrower 7-node/10-edge revision per Yassine's direction that the size range across tiers was too narrow to produce meaningfully different decision regimes between the two policies. Node/edge *count* is still not the variable that matters on its own — route *availability* is — but the earlier three-tier range (4/4, 5/6, 7/10) was judged too close together to test that variable across genuinely different network scales.
 
 All three tiers share the exact same product, initial inventory, demand process, and (template) replenishment plan (V2.3.5) — **only the network's nodes and edges differ between tiers.** This isolates topology's effect on routing flexibility from any confound with shipment volume or demand.
 
@@ -291,7 +291,7 @@ Unchanged from V1 §6 — 5 nodes, 6 edges. Not reproduced here; see V1 §6 for 
 
 #### Extended (`configs/networks/topology_extended.yaml`)
 
-**Nodes (7):**
+**Nodes (10):**
 
 | node_id | node_type | storage_capacity | processing_capacity | source_capacity |
 |---|---|---:|---:|---:|
@@ -299,28 +299,39 @@ Unchanged from V1 §6 — 5 nodes, 6 edges. Not reproduced here; see V1 §6 for 
 | `port_primary` | PORT | 2000 | 200 | 0 |
 | `port_alternative` | PORT | 1200 | 80 | 0 |
 | `port_tertiary` | PORT | 1200 | 90 | 0 |
+| `port_quaternary` | PORT | 1000 | 70 | 0 |
 | `hub_1` | HUB | 2000 | 200 | 0 |
 | `hub_2` | HUB | 1500 | 150 | 0 |
+| `hub_3` | HUB | 1300 | 130 | 0 |
+| `hub_4` | HUB | 1100 | 110 | 0 |
 | `plant_1` | PLANT | 1000 | 200 | 0 |
 
-`supplier_1` and `plant_1` are deliberately identical to Standard/Compact (same source and demand-side economics across every tier — richness is added only in the middle of the network).
+`supplier_1` and `plant_1` are deliberately identical to Standard/Compact (same source and demand-side economics across every tier — richness is added only in the middle of the network). The single-supplier/single-plant boundary from V1 §1's non-goals (no multi-product, multi-plant, or procurement-choice modeling) is preserved by construction: growth is entirely 4 ports + 4 hubs in the middle layer, never a second supplier or destination.
 
-**Edges (10):**
+**Edges (16):**
 
 | edge_id | origin → destination | mode | distance_km | base_lead_time_days | daily_capacity | unit_transport_cost | reliability | emergency |
 |---|---|---|---:|---:|---:|---:|---:|---|
 | `supplier_to_primary_port` | supplier_1 → port_primary | ROAD | 400 | 2 | 100 | 4.00 | 0.97 | false |
 | `supplier_to_alternative_port` | supplier_1 → port_alternative | ROAD | 650 | 4 | 60 | 7.00 | 0.96 | false |
 | `supplier_to_tertiary_port` | supplier_1 → port_tertiary | ROAD | 800 | 5 | 60 | 8.50 | 0.95 | false |
+| `supplier_to_quaternary_port` | supplier_1 → port_quaternary | ROAD | 950 | 6 | 55 | 9.50 | 0.94 | false |
 | `primary_port_to_hub_1` | port_primary → hub_1 | SEA | 6000 | 10 | 200 | 8.00 | 0.94 | false |
 | `alternative_port_to_hub_1` | port_alternative → hub_1 | SEA | 6700 | 12 | 60 | 11.00 | 0.93 | false |
 | `alternative_port_to_hub_2` | port_alternative → hub_2 | SEA | 5800 | 9 | 50 | 10.00 | 0.94 | false |
 | `tertiary_port_to_hub_2` | port_tertiary → hub_2 | SEA | 6200 | 11 | 55 | 10.50 | 0.93 | false |
+| `tertiary_port_to_hub_3` | port_tertiary → hub_3 | SEA | 6400 | 11 | 55 | 10.50 | 0.93 | false |
+| `quaternary_port_to_hub_3` | port_quaternary → hub_3 | SEA | 6600 | 12 | 50 | 11.50 | 0.92 | false |
+| `quaternary_port_to_hub_4` | port_quaternary → hub_4 | SEA | 6900 | 13 | 50 | 12.00 | 0.92 | false |
 | `hub_1_to_plant` | hub_1 → plant_1 | ROAD | 300 | 2 | 120 | 3.00 | 0.98 | false |
 | `hub_2_to_plant` | hub_2 → plant_1 | ROAD | 350 | 3 | 100 | 3.50 | 0.97 | false |
+| `hub_3_to_plant` | hub_3 → plant_1 | ROAD | 400 | 3 | 90 | 4.00 | 0.96 | false |
+| `hub_4_to_plant` | hub_4 → plant_1 | ROAD | 450 | 4 | 80 | 4.50 | 0.95 | false |
 | `supplier_to_plant_air` | supplier_1 → plant_1 | AIR | 6200 | 2 | 40 | 40.00 | 0.99 | **true** |
 
-Every edge shared with Standard (`supplier_to_primary_port`, `supplier_to_alternative_port`, the primary/alternative-to-hub legs, `supplier_to_plant_air`) keeps Standard's exact values, renamed only where a second hub required disambiguating the edge id (`primary_port_to_hub_1`, `alternative_port_to_hub_1`, `hub_1_to_plant` are Standard's `primary_port_to_hub`, `alternative_port_to_hub`, `hub_to_plant` respectively, under new ids since Extended has more than one hub). `port_alternative` now reaches **both** hubs, giving two genuinely distinct multi-hop alternatives to the primary route (`port_primary → hub_1` vs. `port_tertiary → hub_2`), plus a third partial alternative through the shared `port_alternative` node.
+Every edge kept from earlier revisions of this tier retains its exact values; the four new edges (`supplier_to_quaternary_port`, `tertiary_port_to_hub_3`, `quaternary_port_to_hub_3`, `quaternary_port_to_hub_4`, `hub_3_to_plant`, `hub_4_to_plant`) extrapolate the same per-mode cost/distance/reliability trend already established elsewhere in this table (longer distance → higher cost and lead time, slightly lower reliability) — nothing is priced from a new scheme. Every edge/node has capacity comfortably above the shared 40-unit/day baseline flow, so no tier-specific bottleneck exists even absent any shock. The default route is unchanged (`supplier_to_primary_port → primary_port_to_hub_1 → hub_1_to_plant`, 14-day lead time, identical to Standard's), so `warmup_days=20` stays sufficient without change — the longer alternate paths (up to 23 days) are only ever exercised after a shock triggers rerouting inside the evaluation window, never during warm-up.
+
+This mesh gives 4 ports × overlapping hub connections → **7 structurally distinct non-emergency supplier→plant paths** (plus the emergency air lane), each ≤ 3 edges (well under `simulation/routing.py`'s `MAX_ROUTE_EDGES=6`). Running `networkx.betweenness_centrality` on this graph (excluding `supplier_1`/`plant_1`, which trivially sit on every path) shows **`port_primary` is now one of the least central nodes** — closing it removes only 1 of 7 non-emergency paths (6 survive) — while **`hub_1` is tied for most central**, and closing it removes 2 of 7 (5 survive). This is a deliberate, verified consequence of real mesh redundancy, not an oversight: once a tier has enough alternate structure, the node named "primary" by convention is no longer necessarily the node that matters most for a disruption comparison. **Extended's severity scenarios therefore target `hub_1`, not `port_primary`** — see `configs/scenarios/hub_closure_extended.yaml` and V2.8.1 below. `simulation/routing.py`'s `MAX_ROUTE_OPTIONS=5` candidate cap means both policies only ever see the best ~5 of these 7 paths at once (sorted deterministically by cost/arrival/edge-count/id, per V1 §3) — which specific 5 survive changes with which node a shock closes, which is exactly the mechanism this redesign exists to exercise. Growing a topology tier further than this without also revisiting `MAX_ROUTE_OPTIONS`/`MAX_ROUTE_EDGES` (both V1-locked constants) stops adding decision-relevant richness past this point.
 
 **Default route:** in every tier, the replenishment plan's `initial_route_edge_ids` is the "primary" path — `supplier_to_primary_port → primary_port_to_hub(_1) → hub_to_plant` (`hub_1_to_plant` in Extended). The additional infrastructure in Standard and Extended only matters once that primary path is disrupted and candidate-route enumeration (V1 §5) considers alternatives — which is exactly the mechanism V1 already built and does not change.
 
@@ -605,9 +616,10 @@ configs/
 │   ├── topology_compact.yaml          (NEW — V2.3.1)
 │   └── topology_extended.yaml         (NEW — V2.3.1)
 ├── scenarios/
-│   ├── port_closure.yaml              (V1, unchanged)
-│   ├── port_partial_capacity.yaml     (V1, unchanged)
-│   ├── port_extended_closure.yaml     (V1, unchanged)
+│   ├── port_closure.yaml              (V1, unchanged — Compact/Standard Medium severity)
+│   ├── port_partial_capacity.yaml     (V1, unchanged — Compact/Standard Light severity)
+│   ├── port_extended_closure.yaml     (V1, unchanged — Standard Heavy severity)
+│   ├── hub_closure_extended.yaml                (NEW — Extended Medium severity, V2.3.1; targets hub_1, not port_primary — see V2.3.1's betweenness-centrality finding)
 │   ├── demand_spike_before_peak_season.yaml     (NEW — example, V2.5)
 │   ├── supplier_capacity_shortfall.yaml         (NEW — example, V2.5)
 │   └── regional_disruption_event.yaml           (NEW — example, V2.5)
@@ -695,7 +707,7 @@ Nine cells. Topology (Compact/Standard/Extended, V2.3.1) and severity (Light/Med
 
 Each cell is one `configs/experiments/*.yaml` file (V2.5) — nine files total, following V1's existing naming convention, e.g. `compact_light_comparison.yaml`, `extended_heavy_comparison.yaml`. `Standard × Medium` is exactly V1's existing `baseline_comparison.yaml` and is not duplicated.
 
-Severity scenario files (`port_partial_capacity.yaml` etc.) are reused across topology tiers unchanged where their `target_id` exists in every tier (`port_primary` and `supplier_1` exist in Compact, Standard, and Extended by construction, V2.3.1); Extended's richer topology additionally supports the demand-side and supplier-side example scenarios from V2.5, which may be substituted into any tier's severity column at Yassine's discretion when the grid is populated — the grid's structure does not require every cell to use an identical shock *type*, only a comparable shock *severity*, consistent with V2.1's mission delta.
+Severity scenario files (`port_partial_capacity.yaml` etc.) are reused across topology tiers unchanged where doing so still produces a comparably severe disruption — `port_primary` and `supplier_1` exist by name in Compact, Standard, and Extended alike, but existing by name is not sufficient: V2.3.1's betweenness-centrality analysis found that in Extended's wider mesh, `port_primary` is one of the *least* structurally critical nodes (closing it there removes only 1 of 7 non-emergency paths), so reusing `port_closure.yaml`/`port_partial_capacity.yaml`/`port_extended_closure.yaml` unchanged for Extended would be a near-meaningless disruption, not a comparable one. **Extended therefore uses its own severity scenario family targeting `hub_1`** (the tier's actual computed critical node) instead — `hub_closure_extended.yaml` is the Medium-severity member of that family (mirrors `port_closure.yaml`'s 7-day duration). Light and Heavy analogs (a capacity-reduction and an extended-duration/compound variant, both targeting `hub_1`) are required before the Extended column of the grid can be fully populated and are tracked as follow-up work for whoever builds Milestone 14's nine grid-cell configs — they do not yet exist. Extended's richer topology also supports the demand-side and supplier-side example scenarios from V2.5, which may be substituted into any tier's severity column at Yassine's discretion when the grid is populated — the grid's structure does not require every cell to use an identical shock *type*, only a comparable shock *severity*, consistent with V2.1's mission delta.
 
 ### V2.8.2 Replication count
 
@@ -741,7 +753,8 @@ All V1 tests (V1 §9) continue to pass unmodified — V2 adds tests, it does not
 - each topology tier's `NetworkDefinition` has the exact node/edge count and connectivity from V2.3.1;
 - every tier's default `initial_route_edge_ids` begins at the source and ends at the destination (reusing V1's existing route-continuity check, applied to all three tiers);
 - Compact has no structurally valid non-emergency reroute path around a `port_primary` closure (proving the intended REROUTE-impossible property);
-- Extended has at least two structurally distinct non-emergency reroute paths around a `port_primary` closure.
+- Standard has exactly one non-emergency reroute path around a `port_primary` closure;
+- Extended: `port_primary` is confirmed structurally non-critical (closing it leaves 6 of 7 non-emergency paths intact — a raw graph-level count, since `simulation/routing.py`'s `MAX_ROUTE_OPTIONS=5` candidate cap would otherwise mask the true figure), while closing `hub_1` — the tier's actual computed most-critical node, V2.3.1 — leaves 5 structurally distinct non-emergency reroute paths, all policy-visible through `enumerate_candidate_routes`.
 
 ### `tests/integration/test_paired_experiment.py` (additions)
 
@@ -770,7 +783,7 @@ Implement `simulation/transition.py`'s deferral logic and the `SUPPLIER_CAPACITY
 
 ### Milestone 13 — Topology tiers
 
-Build `topology_compact.yaml` and `topology_extended.yaml` exactly per V2.3.1's tables. Done when: `test_topology.py` passes in full, including the Compact-has-no-reroute and Extended-has-multiple-reroutes structural proofs.
+Build `topology_compact.yaml` and `topology_extended.yaml` exactly per V2.3.1's tables. Done when: `test_topology.py` passes in full, including the Compact-has-no-reroute, Extended-has-multiple-reroutes, and (after V2.3.1's later widening of Extended) `port_primary`-is-no-longer-critical/`hub_1`-is-the-real-target structural proofs.
 
 ### Milestone 14 — Grid experiment configs and end-to-end run
 
@@ -823,7 +836,8 @@ V2 is complete only when all are true, additively to V1 §9 (which remains fully
 
 | Topic | Version 2 decision |
 |---|---|
-| Topology | Three tiers — Compact, Standard, Extended — crossed independently with severity (V2.3.1, V2.8.1) |
+| Topology | Three tiers — Compact, Standard, Extended — crossed independently with severity (V2.3.1, V2.8.1). Extended widened to 10 nodes/16 edges per Yassine's direction that the original range (4/4, 5/6, 7/10) was too narrow; Standard stays byte-identical to V1 regardless. |
+| Extended severity targeting | `hub_1`, not `port_primary` — determined by running `networkx.betweenness_centrality` on the actual graph, not assumed (V2.3.1); Compact/Standard keep targeting `port_primary`, their genuine sole chokepoint |
 | Severity | Unchanged from V1 — Light, Medium, Heavy (V1's existing three scenario files) |
 | Grid mechanism | Nine flat experiment config files; no new orchestration abstraction (V2.5) |
 | Disruption duration | Uncertain — sampled TruncatedNormal per replication (V2.3.3) |

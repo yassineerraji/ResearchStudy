@@ -1,0 +1,28 @@
+# Defines the Extended topology tier's designed disruption. Betweenness
+# centrality on topology_extended.yaml shows hub_1 (not port_primary) is
+# this tier's actual most-critical node -- closing port_primary there only
+# removes 1 of 7 non-emergency paths, while closing hub_1 removes 2 of 7.
+# This is the Extended-tier, Medium-severity counterpart to
+# port_closure.yaml (same 7-day duration, same complete-and-immediate
+# information disclosure), used in the Extended column of the topology x
+# severity grid instead of port_closure.yaml.
+
+schema_version: 1
+scenario_id: hub_1_closure_extended
+description: Complete temporary closure of hub_1, the Extended tier's structurally most-critical node.
+
+shocks:
+  - shock_id: close_hub_1
+    shock_type: NODE_CLOSURE
+    target_type: NODE
+    target_id: hub_1
+    planned_start_day: 21
+    start_day_jitter_days: 0
+    minimum_duration_days: 7
+    duration_mean_days: 7
+    duration_std_days: 0
+    maximum_duration_days: 7
+    max_information_delay_days: 0
+    capacity_multiplier: 1.0
+    lead_time_multiplier: 1.0
+    cost_multiplier: 1.0

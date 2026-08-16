@@ -601,12 +601,15 @@ class TestTopologyTierConfigs:
             "port_primary",
             "port_alternative",
             "port_tertiary",
+            "port_quaternary",
             "hub_1",
             "hub_2",
+            "hub_3",
+            "hub_4",
             "plant_1",
         }
-        assert len(network.nodes) == 7
-        assert len(network.edges) == 10
+        assert len(network.nodes) == 10
+        assert len(network.edges) == 16
 
     def test_extended_and_compact_replenishment_plan_matches_standard(self) -> None:
         standard = load_network_config(REPO_ROOT / "configs/networks/baseline_network.yaml")

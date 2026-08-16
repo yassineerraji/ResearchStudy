@@ -4,15 +4,20 @@ Inside tests/unit, this file checks that Compact, Standard, and Extended
 each load into the exact node/edge connectivity the contract specifies, that
 every tier's replenishment plan route is continuous from origin to
 destination, and -- the structural property the whole topology axis exists
-to test -- that closing port_primary leaves Compact with no non-emergency
-reroute at all, while Extended has at least two structurally distinct ones.
-It does not run a simulation; it only checks static graph structure via
-simulation/routing.py's candidate-route enumeration.
+to test -- that closing each tier's most-critical node leaves Compact with
+no non-emergency reroute at all, Standard with exactly one, and Extended
+(closing hub_1, not port_primary -- betweenness centrality on this tier's
+mesh shows hub_1 is the actual critical node, see
+configs/scenarios/hub_closure_extended.yaml) with several structurally
+distinct ones. It does not run a simulation; it only checks static graph
+structure via simulation/routing.py's candidate-route enumeration.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+
+import networkx as nx  # type: ignore[import-untyped]
 
 from supply_chain_simulator.data_io.loaders import (
     build_initial_state,
@@ -24,6 +29,26 @@ from supply_chain_simulator.simulation.routing import enumerate_candidate_routes
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 NETWORKS_DIR = REPO_ROOT / "configs/networks"
+
+
+def _raw_non_emergency_path_count(config_filename: str, closed_node_id: str) -> int:
+    """Counts structurally distinct supplier->plant paths at the pure graph
+    level, bypassing simulation/routing.py's MAX_ROUTE_OPTIONS=5 candidate
+    cap -- used only where the true (uncapped) structural fact matters, e.g.
+    proving a node barely affects connectivity when several more than 5
+    genuine alternatives exist. Route-visible reroute counts (what a policy
+    actually gets to choose from) use enumerate_candidate_routes instead.
+    """
+    network_config = load_network_config(NETWORKS_DIR / config_filename)
+    network_definition = build_network_definition(network_config)
+    graph = nx.DiGraph()
+    for edge in network_definition.edges.values():
+        graph.add_edge(edge.origin_node_id, edge.destination_node_id, emergency=edge.emergency)
+    graph.remove_node(closed_node_id)
+
+    plan = network_config.replenishment_plan
+    paths = nx.all_simple_paths(graph, plan.origin_node_id, plan.destination_node_id)
+    return sum(1 for path in paths if len(path) > 2)  # excludes the 1-edge emergency air lane
 
 
 def _shipment_at_supplier(destination_node_id: str, route_edge_ids: tuple[str, ...]) -> Shipment:
@@ -49,11 +74,13 @@ def _shipment_at_supplier(destination_node_id: str, route_edge_ids: tuple[str, .
     )
 
 
-def _non_emergency_reroutes_around_primary_port_closure(config_filename: str) -> list[tuple[str, ...]]:
+def _non_emergency_reroutes_around_node_closure(
+    config_filename: str, closed_node_id: str
+) -> list[tuple[str, ...]]:
     network_config = load_network_config(NETWORKS_DIR / config_filename)
     network_definition = build_network_definition(network_config)
     state = build_initial_state(network_definition, network_config)
-    state.node_operational_state["port_primary"].available = False
+    state.node_operational_state[closed_node_id].available = False
 
     plan = network_config.replenishment_plan
     shipment = _shipment_at_supplier(plan.destination_node_id, tuple(plan.initial_route_edge_ids))
@@ -86,7 +113,7 @@ class TestCompactTopology:
         """The property Compact exists to prove: with the alternate port
         removed entirely, closing port_primary leaves only WAIT and EXPEDITE.
         """
-        reroutes = _non_emergency_reroutes_around_primary_port_closure("topology_compact.yaml")
+        reroutes = _non_emergency_reroutes_around_node_closure("topology_compact.yaml", "port_primary")
         assert reroutes == []
 
 
@@ -105,7 +132,7 @@ class TestStandardTopology:
         assert route[-1].destination_node_id == plan.destination_node_id
 
     def test_has_exactly_one_non_emergency_reroute_around_primary_port_closure(self) -> None:
-        reroutes = _non_emergency_reroutes_around_primary_port_closure("baseline_network.yaml")
+        reroutes = _non_emergency_reroutes_around_node_closure("baseline_network.yaml", "port_primary")
         assert len(reroutes) == 1
 
 
@@ -117,11 +144,14 @@ class TestExtendedTopology:
             "port_primary",
             "port_alternative",
             "port_tertiary",
+            "port_quaternary",
             "hub_1",
             "hub_2",
+            "hub_3",
+            "hub_4",
             "plant_1",
         }
-        assert len(network_definition.edges) == 10
+        assert len(network_definition.edges) == 16
 
     def test_replenishment_route_is_continuous(self) -> None:
         network_config = load_network_config(NETWORKS_DIR / "topology_extended.yaml")
@@ -131,11 +161,32 @@ class TestExtendedTopology:
         assert route[0].origin_node_id == plan.origin_node_id
         assert route[-1].destination_node_id == plan.destination_node_id
 
-    def test_has_at_least_two_distinct_non_emergency_reroutes_around_primary_port_closure(self) -> None:
-        """The property Extended exists to prove: genuine mesh redundancy
-        gives policies more than one real alternative when the primary port
-        closes, unlike Standard's single reroute.
+    def test_port_primary_is_no_longer_the_critical_node(self) -> None:
+        """The exact finding that drove retargeting this tier's severity
+        scenario to hub_1 (CLAUDE.md V2.3.1): in this mesh, port_primary is
+        one of the least central nodes -- closing it barely dents route
+        availability (6 of 7 non-emergency paths survive at the graph level),
+        unlike Compact/Standard where it's the only chokepoint. This checks
+        the raw graph fact, not the policy-visible candidate count, since
+        Extended has more genuine paths than MAX_ROUTE_OPTIONS=5 can surface
+        at once (routing.py's own candidate cap -- a separate, expected
+        constraint, not a structural property of this tier).
         """
-        reroutes = _non_emergency_reroutes_around_primary_port_closure("topology_extended.yaml")
-        assert len(reroutes) >= 2
+        assert _raw_non_emergency_path_count("topology_extended.yaml", "port_primary") == 6
+
+    def test_hub_1_closure_is_more_disruptive_than_port_primary_at_the_graph_level(self) -> None:
+        assert _raw_non_emergency_path_count("topology_extended.yaml", "hub_1") == 5
+        assert _raw_non_emergency_path_count(
+            "topology_extended.yaml", "hub_1"
+        ) < _raw_non_emergency_path_count("topology_extended.yaml", "port_primary")
+
+    def test_has_several_distinct_non_emergency_reroutes_around_hub_1_closure(self) -> None:
+        """The property this tier's redesign exists to prove: hub_1, not
+        port_primary, is the structurally critical node here (verified by
+        networkx.betweenness_centrality during design -- see
+        configs/networks/topology_extended.yaml's header comment) --  and
+        even so, real mesh redundancy leaves most routes intact.
+        """
+        reroutes = _non_emergency_reroutes_around_node_closure("topology_extended.yaml", "hub_1")
+        assert len(reroutes) == 5  # 5 of 7 non-emergency paths survive
         assert len(set(reroutes)) == len(reroutes)  # each candidate is structurally distinct
