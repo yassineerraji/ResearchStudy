@@ -1,0 +1,39 @@
+# Combines the Compact topology, the "Light" partial-capacity-reduction
+# scenario, and two policies into one paired experiment -- the Compact x
+# Light cell of the topology x severity grid (V2 CLAUDE.md §V2.8.1).
+# Deliberately reuses the same base_seed across all three Compact-topology
+# severities (compact_medium_comparison.yaml, compact_heavy_comparison.yaml):
+# since demand and ordinary transport delays are derived only from
+# (base_seed, replication, network edges), not from scenario content, the
+# three Compact severities share the exact same underlying random "world"
+# for a given replication number -- only the disruption differs. Compact's
+# base_seed (2042) is distinct from Standard's (1042) and Extended's (3042)
+# since different topologies consume the edge-delay stream differently
+# regardless of seed.
+
+schema_version: 1
+experiment_id: compact_light_comparison
+
+network_config: ../networks/topology_compact.yaml
+scenario_config: ../scenarios/port_partial_capacity.yaml
+
+policy_configs:
+  heuristic: ../policies/heuristic.yaml
+  llm_agent: ../policies/llm_agent.yaml
+
+warmup_days: 20
+horizon_days: 60
+drain_days: 30
+terminal_penalty_days: 30
+
+replications: 33
+base_seed: 2042
+
+counterfactual_mode: POLICY_SPECIFIC
+fail_fast: true
+
+output_root: ../../outputs
+write_event_tapes: true
+write_daily_metrics: true
+write_decision_traces: true
+write_llm_interactions: true

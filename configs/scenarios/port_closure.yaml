@@ -1,23 +1,26 @@
-# Defines the designed disruption applied after warm-up. The primary port is
-# physically unavailable for seven full days, and both policies receive the
-# same complete information when the closure begins.
+# Defines the Medium-severity designed disruption. The primary port closes
+# for roughly a week, but neither the exact start day, the exact duration,
+# nor the exact moment either policy learns about it is known in advance --
+# all three are sampled once per replication (V2 CLAUDE.md §V2.3.3), so the
+# same handful of shipments do not deterministically hit the same disruption
+# the same way on every single run.
 
 schema_version: 1
 scenario_id: primary_port_closure
-description: Complete temporary closure of the primary port.
+description: Temporary closure of the primary port, with uncertain start day, duration, and disclosure delay.
 
 shocks:
   - shock_id: close_primary_port
     shock_type: NODE_CLOSURE
     target_type: NODE
     target_id: port_primary
-    planned_start_day: 21
-    start_day_jitter_days: 0
-    minimum_duration_days: 7
+    planned_start_day: 25
+    start_day_jitter_days: 3
+    minimum_duration_days: 4
     duration_mean_days: 7
-    duration_std_days: 0
-    maximum_duration_days: 7
-    max_information_delay_days: 0
+    duration_std_days: 2
+    maximum_duration_days: 11
+    max_information_delay_days: 2
     capacity_multiplier: 1.0
     lead_time_multiplier: 1.0
     cost_multiplier: 1.0

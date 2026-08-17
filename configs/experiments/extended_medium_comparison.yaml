@@ -1,0 +1,33 @@
+# Combines the Extended topology, the "Medium" hub_1-closure scenario, and
+# two policies into one paired experiment -- the Extended x Medium cell of
+# the topology x severity grid (V2 CLAUDE.md §V2.8.1). Reuses the same
+# base_seed as extended_light_comparison.yaml and
+# extended_heavy_comparison.yaml (see that file's header for why), and the
+# same network as both.
+
+schema_version: 1
+experiment_id: extended_medium_comparison
+
+network_config: ../networks/topology_extended.yaml
+scenario_config: ../scenarios/hub_closure_extended.yaml
+
+policy_configs:
+  heuristic: ../policies/heuristic.yaml
+  llm_agent: ../policies/llm_agent.yaml
+
+warmup_days: 20
+horizon_days: 60
+drain_days: 30
+terminal_penalty_days: 30
+
+replications: 33
+base_seed: 3042
+
+counterfactual_mode: POLICY_SPECIFIC
+fail_fast: true
+
+output_root: ../../outputs
+write_event_tapes: true
+write_daily_metrics: true
+write_decision_traces: true
+write_llm_interactions: true

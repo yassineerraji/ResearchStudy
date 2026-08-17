@@ -1,0 +1,50 @@
+# Defines Compact's "Heavy" disruption profile. Compact has no alternate
+# port (V2 CLAUDE.md §V2.3.1), so port_extended_closure.yaml's "congestion
+# on the alternate route" knock-on effect has no valid target there --
+# reusing it fails config validation outright (it references
+# alternative_port_to_hub, an edge that doesn't exist in Compact's 4-edge
+# network). This is Compact's own Heavy scenario instead: the same extended
+# primary-port closure, plus a comparable knock-on effect on the one
+# alternative Compact actually has -- its emergency air lane gets slower
+# too, making even EXPEDITE a worse option during the closure. Same
+# magnitudes as Standard's Heavy scenario (port_extended_closure.yaml), so
+# severity stays comparable across tiers; only the congested edge differs.
+# The two shocks represent one correlated regional event and share one
+# start-day jitter draw via event_group_id (V2 CLAUDE.md §V2.3.4).
+
+schema_version: 1
+scenario_id: primary_port_extended_closure_compact
+description: Extended primary port closure plus emergency-lane congestion, Compact's Heavy-severity counterpart to port_extended_closure.yaml.
+
+shocks:
+  - shock_id: close_primary_port_extended_compact
+    shock_type: NODE_CLOSURE
+    target_type: NODE
+    target_id: port_primary
+    planned_start_day: 25
+    start_day_jitter_days: 4
+    minimum_duration_days: 14
+    duration_mean_days: 21
+    duration_std_days: 4
+    maximum_duration_days: 28
+    max_information_delay_days: 2
+    capacity_multiplier: 1.0
+    lead_time_multiplier: 1.0
+    cost_multiplier: 1.0
+    event_group_id: primary_port_regional_event_compact
+
+  - shock_id: emergency_lane_congestion
+    shock_type: EDGE_LEAD_TIME_INCREASE
+    target_type: EDGE
+    target_id: supplier_to_plant_air
+    planned_start_day: 25
+    start_day_jitter_days: 4
+    minimum_duration_days: 14
+    duration_mean_days: 21
+    duration_std_days: 4
+    maximum_duration_days: 28
+    max_information_delay_days: 3
+    capacity_multiplier: 1.0
+    lead_time_multiplier: 1.75
+    cost_multiplier: 1.0
+    event_group_id: primary_port_regional_event_compact

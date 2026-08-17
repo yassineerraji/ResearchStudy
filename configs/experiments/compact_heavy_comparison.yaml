@@ -1,0 +1,37 @@
+# Combines the Compact topology, Compact's own "Heavy" scenario, and two
+# policies into one paired experiment -- the Compact x Heavy cell of the
+# topology x severity grid (V2 CLAUDE.md §V2.8.1). Uses
+# port_extended_closure_compact.yaml, not port_extended_closure.yaml:
+# Standard's Heavy scenario references an edge (alternative_port_to_hub)
+# that doesn't exist in Compact's 4-edge network, so it fails config
+# validation outright there -- Compact's Heavy scenario instead pairs the
+# same extended primary-port closure with congestion on Compact's one real
+# alternative, the emergency air lane. Reuses the same base_seed as
+# compact_light_comparison.yaml and compact_medium_comparison.yaml.
+
+schema_version: 1
+experiment_id: compact_heavy_comparison
+
+network_config: ../networks/topology_compact.yaml
+scenario_config: ../scenarios/port_extended_closure_compact.yaml
+
+policy_configs:
+  heuristic: ../policies/heuristic.yaml
+  llm_agent: ../policies/llm_agent.yaml
+
+warmup_days: 20
+horizon_days: 60
+drain_days: 30
+terminal_penalty_days: 30
+
+replications: 33
+base_seed: 2042
+
+counterfactual_mode: POLICY_SPECIFIC
+fail_fast: true
+
+output_root: ../../outputs
+write_event_tapes: true
+write_daily_metrics: true
+write_decision_traces: true
+write_llm_interactions: true

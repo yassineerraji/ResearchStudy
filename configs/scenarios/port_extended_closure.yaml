@@ -1,42 +1,47 @@
 # Defines the "Heavy" disruption profile: a full primary-port closure that
-# lasts three weeks instead of Medium's one, plus a realistic knock-on
-# effect -- traffic diverted onto the alternate port's sea lane slows it
-# down too. Used alongside port_closure.yaml (Medium) and
-# port_partial_capacity.yaml (Light) to give the paired comparison a
-# realistic spread of disruption severity. Both policies receive the same
-# complete information for both shocks when they begin.
+# lasts roughly three weeks instead of Medium's one, plus a realistic
+# knock-on effect -- traffic diverted onto the alternate port's sea lane
+# slows it down too. The two shocks represent one correlated regional event
+# (the closure and the congestion it causes start together), so they share
+# one start-day jitter draw via event_group_id (V2 CLAUDE.md §V2.3.4), while
+# each still recovers -- and is disclosed -- on its own independent timeline.
+# Used alongside port_closure.yaml (Medium) and port_partial_capacity.yaml
+# (Light) to give the paired comparison a realistic spread of disruption
+# severity.
 
 schema_version: 1
 scenario_id: primary_port_extended_closure_with_congestion
-description: Extended primary port closure plus alternate-route congestion from diverted traffic.
+description: Extended primary port closure plus alternate-route congestion from diverted traffic, with uncertain shared onset and independent durations/disclosure.
 
 shocks:
   - shock_id: close_primary_port_extended
     shock_type: NODE_CLOSURE
     target_type: NODE
     target_id: port_primary
-    planned_start_day: 21
-    start_day_jitter_days: 0
-    minimum_duration_days: 21
+    planned_start_day: 25
+    start_day_jitter_days: 4
+    minimum_duration_days: 14
     duration_mean_days: 21
-    duration_std_days: 0
-    maximum_duration_days: 21
-    max_information_delay_days: 0
+    duration_std_days: 4
+    maximum_duration_days: 28
+    max_information_delay_days: 2
     capacity_multiplier: 1.0
     lead_time_multiplier: 1.0
     cost_multiplier: 1.0
+    event_group_id: primary_port_regional_event
 
   - shock_id: alternate_port_congestion
     shock_type: EDGE_LEAD_TIME_INCREASE
     target_type: EDGE
     target_id: alternative_port_to_hub
-    planned_start_day: 21
-    start_day_jitter_days: 0
-    minimum_duration_days: 21
+    planned_start_day: 25
+    start_day_jitter_days: 4
+    minimum_duration_days: 14
     duration_mean_days: 21
-    duration_std_days: 0
-    maximum_duration_days: 21
-    max_information_delay_days: 0
+    duration_std_days: 4
+    maximum_duration_days: 28
+    max_information_delay_days: 3
     capacity_multiplier: 1.0
     lead_time_multiplier: 1.75
     cost_multiplier: 1.0
+    event_group_id: primary_port_regional_event

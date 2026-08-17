@@ -11,7 +11,11 @@ credentials/model from the environment variables the config names (never
 logging their values), builds a live `OpenAIResponsesClient` or a
 `ReplayLLMClient` per `execution_mode`, and wraps it in `LLMAgentPolicy` with
 its configured fallback. `validate-config` never needs any of this, since it
-never instantiates a policy.
+never instantiates a policy. `main` also loads a repo-root `.env` file (if
+present) into the process environment before dispatching either command, so
+`OPENAI_API_KEY`/`LLM_MODEL` can live in that gitignored file instead of the
+shell — `_load_dotenv` never overrides an already-set variable and never
+logs what it reads.
 """
 
 from __future__ import annotations
@@ -62,6 +66,32 @@ EXIT_LLM_INTEGRATION_ERROR = 4
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
+
+
+def _load_dotenv(repo_root: Path) -> None:
+    """Loads KEY=VALUE pairs from a .env file at the repo root into the
+    process environment, without overriding any variable already set there
+    (so a real shell export always wins) and without loading a key whose
+    value is blank (so an unfilled-in placeholder line behaves exactly as
+    if it were absent, and _required_env_var's existing error still fires).
+    Deliberately dependency-free -- no python-dotenv -- per this project's
+    minimal-dependencies convention; .env syntax here is limited to simple
+    KEY=VALUE lines, blank lines, and '#'-prefixed comments, which is all
+    .env.example ever needs. The real .env file is gitignored and this
+    function never logs or prints anything it reads from it.
+    """
+    env_path = repo_root / ".env"
+    if not env_path.is_file():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, _, value = stripped.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and value and key not in os.environ:
+            os.environ[key] = value
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -212,6 +242,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     args = build_parser().parse_args(argv)
     repo_root = _repo_root()
+    _load_dotenv(repo_root)
 
     try:
         if args.command == "validate-config":

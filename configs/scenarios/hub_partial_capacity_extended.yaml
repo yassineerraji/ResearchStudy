@@ -1,0 +1,26 @@
+# Defines the Extended topology tier's "Light" disruption profile. Mirrors
+# port_partial_capacity.yaml exactly (same distribution, same magnitude),
+# retargeted to hub_1 -- this tier's actual structurally critical node (V2
+# CLAUDE.md §V2.3.1's betweenness-centrality finding), the same way
+# hub_closure_extended.yaml is the Medium-severity counterpart to
+# port_closure.yaml.
+
+schema_version: 1
+scenario_id: hub_1_partial_capacity_extended
+description: hub_1 stays open but runs at reduced processing capacity for roughly a week, Extended's Light-severity counterpart to port_partial_capacity.yaml.
+
+shocks:
+  - shock_id: reduce_hub_1_capacity
+    shock_type: NODE_CAPACITY_REDUCTION
+    target_type: NODE
+    target_id: hub_1
+    planned_start_day: 25
+    start_day_jitter_days: 3
+    minimum_duration_days: 4
+    duration_mean_days: 7
+    duration_std_days: 2
+    maximum_duration_days: 11
+    max_information_delay_days: 1
+    capacity_multiplier: 0.25
+    lead_time_multiplier: 1.0
+    cost_multiplier: 1.0

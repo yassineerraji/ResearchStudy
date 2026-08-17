@@ -1,0 +1,30 @@
+# A cost-calibration variant of compact_medium_comparison.yaml: identical in
+# every parameter except replications is 3 instead of 33, and base_seed is
+# unchanged so these 3 replications are exactly the real run's first 3.
+
+schema_version: 1
+experiment_id: compact_medium_comparison_calibration
+
+network_config: ../networks/topology_compact.yaml
+scenario_config: ../scenarios/port_closure.yaml
+
+policy_configs:
+  heuristic: ../policies/heuristic.yaml
+  llm_agent: ../policies/llm_agent.yaml
+
+warmup_days: 20
+horizon_days: 60
+drain_days: 30
+terminal_penalty_days: 30
+
+replications: 3
+base_seed: 2042
+
+counterfactual_mode: POLICY_SPECIFIC
+fail_fast: true
+
+output_root: ../../outputs
+write_event_tapes: true
+write_daily_metrics: true
+write_decision_traces: true
+write_llm_interactions: true

@@ -1,0 +1,35 @@
+# Combines the Extended topology, Extended's own "Heavy" scenario, and two
+# policies into one paired experiment -- the Extended x Heavy cell of the
+# topology x severity grid (V2 CLAUDE.md §V2.8.1). Uses
+# hub_extended_closure_with_congestion.yaml: an extended closure of hub_1
+# plus congestion on alternative_port_to_hub_2, one of the routes that
+# actually survives hub_1's closure and absorbs the diverted traffic.
+# Reuses the same base_seed as extended_light_comparison.yaml and
+# extended_medium_comparison.yaml.
+
+schema_version: 1
+experiment_id: extended_heavy_comparison
+
+network_config: ../networks/topology_extended.yaml
+scenario_config: ../scenarios/hub_extended_closure_with_congestion.yaml
+
+policy_configs:
+  heuristic: ../policies/heuristic.yaml
+  llm_agent: ../policies/llm_agent.yaml
+
+warmup_days: 20
+horizon_days: 60
+drain_days: 30
+terminal_penalty_days: 30
+
+replications: 33
+base_seed: 3042
+
+counterfactual_mode: POLICY_SPECIFIC
+fail_fast: true
+
+output_root: ../../outputs
+write_event_tapes: true
+write_daily_metrics: true
+write_decision_traces: true
+write_llm_interactions: true

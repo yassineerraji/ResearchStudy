@@ -615,19 +615,27 @@ configs/
 │   ├── baseline_network.yaml          (V1, unchanged — the Standard topology tier)
 │   ├── topology_compact.yaml          (NEW — V2.3.1)
 │   └── topology_extended.yaml         (NEW — V2.3.1)
-├── scenarios/
-│   ├── port_closure.yaml              (V1, unchanged — Compact/Standard Medium severity)
-│   ├── port_partial_capacity.yaml     (V1, unchanged — Compact/Standard Light severity)
-│   ├── port_extended_closure.yaml     (V1, unchanged — Standard Heavy severity)
-│   ├── hub_closure_extended.yaml                (NEW — Extended Medium severity, V2.3.1; targets hub_1, not port_primary — see V2.3.1's betweenness-centrality finding)
+├── scenarios/  (all nine topology x severity combinations now have a validated scenario file)
+│   ├── port_closure.yaml                        (Compact/Standard Medium — migrated from V1 with real start-day jitter, duration uncertainty, and information delay, no longer zero-uncertainty)
+│   ├── port_partial_capacity.yaml               (Compact/Standard Light — same migration)
+│   ├── port_extended_closure.yaml               (Standard Heavy — same migration; two shocks now share one event_group_id)
+│   ├── port_extended_closure_compact.yaml       (NEW — Compact Heavy; port_extended_closure.yaml doesn't validate for Compact, wrong edge id)
+│   ├── hub_partial_capacity_extended.yaml       (NEW — Extended Light; targets hub_1)
+│   ├── hub_closure_extended.yaml                (NEW — Extended Medium; targets hub_1, not port_primary — see V2.3.1's betweenness-centrality finding)
+│   ├── hub_extended_closure_with_congestion.yaml (NEW — Extended Heavy; targets hub_1 + a surviving alternate edge)
 │   ├── demand_spike_before_peak_season.yaml     (NEW — example, V2.5)
 │   ├── supplier_capacity_shortfall.yaml         (NEW — example, V2.5)
 │   └── regional_disruption_event.yaml           (NEW — example, V2.5)
-└── experiments/
-    ├── baseline_comparison.yaml       (V1, unchanged — this is the Standard x Medium grid cell)
+└── experiments/  (all nine topology x severity grid cells now exist and validate — Milestone 14)
+    ├── baseline_comparison.yaml       (V1, unchanged — Standard x Medium)
     ├── light_disruption_comparison.yaml    (V1, unchanged — Standard x Light)
     ├── heavy_disruption_comparison.yaml    (V1, unchanged — Standard x Heavy)
-    └── (six more, one per remaining grid cell — V2.8)
+    ├── compact_light_comparison.yaml       (NEW — Compact x Light)
+    ├── compact_medium_comparison.yaml      (NEW — Compact x Medium)
+    ├── compact_heavy_comparison.yaml       (NEW — Compact x Heavy)
+    ├── extended_light_comparison.yaml      (NEW — Extended x Light)
+    ├── extended_medium_comparison.yaml     (NEW — Extended x Medium)
+    └── extended_heavy_comparison.yaml      (NEW — Extended x Heavy)
 ```
 
 No new top-level architectural folder is introduced (`src/supply_chain_simulator`'s package boundaries are unchanged, per V1 §4's "do not create additional architectural folders" and V2.2's "what must not change"). `analysis/` (built during V1's results-visualization work, outside the core package) gains new capability, not a new folder — V2.7.
@@ -705,21 +713,21 @@ V2 crosses two independent axes, per Yassine's confirmed direction (`Independent
 
 Nine cells. Topology (Compact/Standard/Extended, V2.3.1) and severity (Light/Medium/Heavy, already built and validated in V1 as `port_partial_capacity.yaml`/`port_closure.yaml`/`port_extended_closure.yaml`) are deliberately named with disjoint vocabulary so a cell label is unambiguous without a legend.
 
-Each cell is one `configs/experiments/*.yaml` file (V2.5) — nine files total, following V1's existing naming convention, e.g. `compact_light_comparison.yaml`, `extended_heavy_comparison.yaml`. `Standard × Medium` is exactly V1's existing `baseline_comparison.yaml` and is not duplicated.
+Each cell is one `configs/experiments/*.yaml` file (V2.5) — nine files total, following V1's existing naming convention, e.g. `compact_light_comparison.yaml`, `extended_heavy_comparison.yaml`. `Standard × Medium` is exactly V1's existing `baseline_comparison.yaml` and is not duplicated. **All nine now exist and validate** (Milestone 14): `baseline_comparison.yaml`/`light_disruption_comparison.yaml`/`heavy_disruption_comparison.yaml` (Standard's three, V1-unchanged) plus six new files, `compact_{light,medium,heavy}_comparison.yaml` and `extended_{light,medium,heavy}_comparison.yaml`. Each Compact-column file shares one `base_seed` (2042) and each Extended-column file shares another (3042) — distinct from Standard's (1042) and from each other — mirroring V1's own rationale for reusing one seed across its three severities: demand and ordinary transport delays depend only on `(base_seed, replication, network edges)`, not on scenario content, so the three severities within one topology column share the same underlying random "world" and only the disruption itself differs; different topologies necessarily consume the edge-delay stream differently regardless of seed, so there is no equivalent reason to share a seed *across* columns.
 
-Severity scenario files (`port_partial_capacity.yaml` etc.) are reused across topology tiers unchanged where doing so still produces a comparably severe disruption — `port_primary` and `supplier_1` exist by name in Compact, Standard, and Extended alike, but existing by name is not sufficient: V2.3.1's betweenness-centrality analysis found that in Extended's wider mesh, `port_primary` is one of the *least* structurally critical nodes (closing it there removes only 1 of 7 non-emergency paths), so reusing `port_closure.yaml`/`port_partial_capacity.yaml`/`port_extended_closure.yaml` unchanged for Extended would be a near-meaningless disruption, not a comparable one. **Extended therefore uses its own severity scenario family targeting `hub_1`** (the tier's actual computed critical node) instead — `hub_closure_extended.yaml` is the Medium-severity member of that family (mirrors `port_closure.yaml`'s 7-day duration). Light and Heavy analogs (a capacity-reduction and an extended-duration/compound variant, both targeting `hub_1`) are required before the Extended column of the grid can be fully populated and are tracked as follow-up work for whoever builds Milestone 14's nine grid-cell configs — they do not yet exist. Extended's richer topology also supports the demand-side and supplier-side example scenarios from V2.5, which may be substituted into any tier's severity column at Yassine's discretion when the grid is populated — the grid's structure does not require every cell to use an identical shock *type*, only a comparable shock *severity*, consistent with V2.1's mission delta.
+Severity scenario files (`port_partial_capacity.yaml` etc.) are reused across topology tiers unchanged where doing so still produces a comparably severe disruption — `port_primary` and `supplier_1` exist by name in Compact, Standard, and Extended alike, but existing by name is not sufficient: V2.3.1's betweenness-centrality analysis found that in Extended's wider mesh, `port_primary` is one of the *least* structurally critical nodes (closing it there removes only 1 of 7 non-emergency paths), so reusing `port_closure.yaml`/`port_partial_capacity.yaml`/`port_extended_closure.yaml` unchanged for Extended would be a near-meaningless disruption, not a comparable one. **Extended therefore uses its own severity scenario family targeting `hub_1`** (the tier's actual computed critical node): `hub_partial_capacity_extended.yaml` (Light), `hub_closure_extended.yaml` (Medium), `hub_extended_closure_with_congestion.yaml` (Heavy) — each mirrors its `port_*`/Standard counterpart's exact timing/duration/magnitude parameters, so severity stays comparable across the topology axis; only the target and (for Heavy) the congested edge differ. Compact separately needed its own Heavy scenario, `port_extended_closure_compact.yaml`: `port_extended_closure.yaml` (Standard's Heavy) references the edge `alternative_port_to_hub`, which doesn't exist in Compact's 4-edge network (Compact has no alternate port at all), so reusing it fails config validation outright rather than merely being weak. Compact's Heavy instead pairs the same extended primary-port closure with a knock-on lead-time increase on Compact's one real alternative, the emergency air lane (`supplier_to_plant_air`), at the same magnitude as Standard/Extended's congestion shock. All three new files were verified two ways before being treated as done: `validate-config` passes, and a real (non-live, `WaitFallbackPolicy`-substituted) multi-replication paired run completes through the full engine/runner/writer pipeline with no invariant errors. **All nine topology × severity combinations now have a validated, structurally-appropriate scenario file** — none are missing or broken. Extended's richer topology also supports the demand-side and supplier-side example scenarios from V2.5, which may be substituted into any tier's severity column at Yassine's discretion when the grid is populated — the grid's structure does not require every cell to use an identical shock *type*, only a comparable shock *severity*, consistent with V2.1's mission delta.
 
 ### V2.8.2 Replication count
 
 V1 used 100 replications per single profile (300 total) within a $16.71 budget, calibrated empirically (V1's real 3-replication-per-profile calibration run) at roughly $0.05–$0.06 per replication at full horizon/drain. Nine cells at the same per-replication cost and the same total budget implies roughly 33 replications per cell — a real reduction in per-cell statistical power versus V1's single-profile runs.
 
-This is a cost/power tradeoff, not a scientific rule, so it is **not locked** the way V1's fixed values were. The recommended default is:
+This is a cost/power tradeoff, not a scientific rule, so it is **not locked** the way V1's fixed values were. An earlier draft of this document recommended a default of 50/cell (450 total, ~$25) as a middle point buying more power than a bare 33. **Yassine confirmed 33/cell instead** — keeping total spend at V1's original ~$16.71 scale rather than exceeding it — so every grid-cell config file (V2.8.1) is written with:
 
 ```text
-replications: 50   # per grid cell, 450 total
+replications: 33   # per grid cell, 297 total
 ```
 
-chosen as a middle point that keeps total spend near V1's original budget scale (450 × ~$0.055 ≈ $25) while giving each cell meaningfully more power than a bare 33. Yassine must explicitly confirm the actual `replications` value and run the same calibration procedure V1 used (a 3-replication real smoke at full horizon/drain per cell, or one representative cell if cells are judged cost-homogeneous) before committing to the full grid — this mirrors V1 §10's own "no coding agent may silently pick a scientific parameter" discipline, extended to V2's new grid.
+The calibration run itself (a 3-replication real smoke at full horizon/drain per cell, or one representative cell if cells are judged cost-homogeneous) has **not** run yet — that step still requires Yassine's explicit go-ahead to spend anything, per V1 §10's "no coding agent may silently pick a scientific parameter" discipline. `replications: 33` is written into the configs now; if calibration reveals a materially different real per-replication cost (Extended's larger topology is unmeasured), this number may still be revisited before the full grid runs.
 
 ## V2.9 Testing contract additions
 

@@ -1,0 +1,33 @@
+# A cost-calibration variant of compact_light_comparison.yaml: identical in
+# every parameter -- same network, scenario, policies, horizon, drain, and
+# base_seed -- except replications is 3 instead of 33. Because base_seed is
+# unchanged, these 3 replications are exactly the real run's first 3 (same
+# random demand/delay draws), used only to measure real OpenAI spend at
+# full horizon/drain scale before committing to the full 33-replication run.
+
+schema_version: 1
+experiment_id: compact_light_comparison_calibration
+
+network_config: ../networks/topology_compact.yaml
+scenario_config: ../scenarios/port_partial_capacity.yaml
+
+policy_configs:
+  heuristic: ../policies/heuristic.yaml
+  llm_agent: ../policies/llm_agent.yaml
+
+warmup_days: 20
+horizon_days: 60
+drain_days: 30
+terminal_penalty_days: 30
+
+replications: 3
+base_seed: 2042
+
+counterfactual_mode: POLICY_SPECIFIC
+fail_fast: true
+
+output_root: ../../outputs
+write_event_tapes: true
+write_daily_metrics: true
+write_decision_traces: true
+write_llm_interactions: true

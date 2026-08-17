@@ -1,0 +1,40 @@
+# Combines the Extended topology, the "Light" hub-capacity-reduction
+# scenario, and two policies into one paired experiment -- the Extended x
+# Light cell of the topology x severity grid (V2 CLAUDE.md §V2.8.1). Uses
+# hub_partial_capacity_extended.yaml, not port_partial_capacity.yaml:
+# betweenness centrality on Extended's mesh shows port_primary is one of
+# its least structurally critical nodes, so a port_primary-targeted
+# scenario would be a near-meaningless disruption there -- Extended's
+# severity scenarios target hub_1 instead (see hub_closure_extended.yaml's
+# header for the full analysis). Deliberately reuses the same base_seed
+# across all three Extended-topology severities (see
+# compact_light_comparison.yaml's header for why this pattern matters);
+# Extended's base_seed (3042) is distinct from Standard's (1042) and
+# Compact's (2042).
+
+schema_version: 1
+experiment_id: extended_light_comparison
+
+network_config: ../networks/topology_extended.yaml
+scenario_config: ../scenarios/hub_partial_capacity_extended.yaml
+
+policy_configs:
+  heuristic: ../policies/heuristic.yaml
+  llm_agent: ../policies/llm_agent.yaml
+
+warmup_days: 20
+horizon_days: 60
+drain_days: 30
+terminal_penalty_days: 30
+
+replications: 33
+base_seed: 3042
+
+counterfactual_mode: POLICY_SPECIFIC
+fail_fast: true
+
+output_root: ../../outputs
+write_event_tapes: true
+write_daily_metrics: true
+write_decision_traces: true
+write_llm_interactions: true
