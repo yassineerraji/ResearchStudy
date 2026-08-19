@@ -89,10 +89,13 @@ supply-chain-agent-evaluation/
 │   ├── integrations/       llm_client.py
 │   └── data_io/              {loaders,writers}.py
 ├── analysis/            plot_results.py   (standalone; outside mypy/pytest scope)
+├── webapp/              backend/ (FastAPI), frontend/ (React/Vite) -- see below
 └── tests/{unit,integration,fixtures}/
 ```
 
-No additional architectural folder exists; `outputs/<experiment_id>__<UTC_TIMESTAMP>/` subfolders are generated at runtime, not source.
+No additional architectural folder exists inside `src/supply_chain_simulator/`; `outputs/<experiment_id>__<UTC_TIMESTAMP>/` subfolders are generated at runtime, not source.
+
+**`webapp/`** is a separate, self-contained tool, not part of this contract's dependency graph. `webapp/backend/` (FastAPI, its own `pyproject.toml`, `.venv`, 43 passing tests) mounts read-only endpoints over already-written `outputs/` directories plus a sandbox-run launcher that shells out to the same `python -m supply_chain_simulator.cli run` this contract already governs; `webapp/frontend/` (React/Vite) renders a Gallery of past runs, a per-run detail view (cost breakdown, network diagram, decision explorer, day-by-day replay), and a form to launch a new sandbox run. It imports `supply_chain_simulator` only as a black box (reads its output files, invokes its CLI) — it never imports simulation/decision/policy internals, so it carries no scientific-validity or fairness obligation and this file's V1 §1 instruction hierarchy and locked decisions (V1 §10, V2.12) do not apply to it. It has no entry in V1 §5's package-responsibility table and no V2.7 file-change entry because neither section governs it; treat feature requests against `webapp/` as ordinary software work, not as touching the research contract.
 
 ## V1 §5. Package responsibilities
 
@@ -205,7 +208,7 @@ No coding agent may change these decisions without explicit approval from Yassin
 
 ## Why V2 exists
 
-V1 answered its research question cleanly: across 300 real replications (100 each for a Light/Medium/Heavy disruption), the LLM agent beat the classical heuristic overwhelmingly under Medium and Heavy disruptions and lost consistently under Light ones. But auditing those results surfaced something the V1 design didn't anticipate: **within every single profile, all 100 replications agreed on the winner — 100%/0%, never a mixed result.** A full audit (see `REPORT.md` and the conversation history around it) traced this to three compounding, fixable properties of V1's design, not to a flaw in the comparison itself:
+V1 answered its research question cleanly: across 300 real replications (100 each for a Light/Medium/Heavy disruption), the LLM agent beat the classical heuristic overwhelmingly under Medium and Heavy disruptions and lost consistently under Light ones. But auditing those results surfaced something the V1 design didn't anticipate: **within every single profile, all 100 replications agreed on the winner — 100%/0%, never a mixed result.** A full audit of that result (its three findings are summarized in the numbered list immediately below — no external document is needed to follow the reasoning) traced this to three compounding, fixable properties of V1's design, not to a flaw in the comparison itself:
 
 1. The mean cost gap between policies is 7.6×–10.2× larger than the random noise between replications, in every profile — the two policies are separated by a gap the environment's randomness was never designed to be able to bridge.
 2. The shipment release schedule is **fully deterministic** (exactly 40 units, every single day) and the disruption's timing, duration, and disclosure are all **fully known in advance** — so the same handful of shipments hit the same disruption the same way in every replication, regardless of the random demand/delay draws.
