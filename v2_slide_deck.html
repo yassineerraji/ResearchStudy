@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supply-Chain Agent Evaluation — V2 Grid Results</title>
+</head>
+<body>
+<style>
+  /* ============ TOKENS (carried over from v1_slide_deck.html unchanged, plus V2 additions) ============ */
+  :root{
+    color-scheme: light;
+    --bg: #F1F4F6;
+    --surface: #FFFFFF;
+    --surface-2: #E7ECF0;
+    --border: #D6DEE4;
+    --border-strong: #B9C4CC;
+    --ink: #121822;
+    --ink-2: #45525F;
+    --ink-3: #74828F;
+    --llm: #2a78d6;      /* categorical slot 1 — LLM agent */
+    --llm-soft: #E4EDFA;
+    --heur: #eb6834;     /* categorical slot 2 — heuristic */
+    --heur-soft: #FCE8DE;
+    --sev-1: #E2AFA8;    /* light disruption */
+    --sev-2: #C1584A;    /* medium disruption */
+    --sev-3: #7C2116;    /* heavy disruption */
+    --sev-1-ink:#5E2B25; --sev-2-ink:#FFFFFF; --sev-3-ink:#FFFFFF;
+    --topo-compact: #1b9e77;   /* topology tier categorical — validated distinct from --llm/--heur */
+    --topo-standard: #7570b3;
+    --topo-extended: #e7298a;
+    --grid: #D6DEE4;
+    --shock: rgba(124,33,22,0.08);
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Consolas, monospace;
+    --serif: ui-serif, "Iowan Old Style", "Sitka Text", Charter, Georgia, serif;
+    --sans: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --shadow: 0 1px 2px rgba(18,24,34,0.06), 0 8px 24px -12px rgba(18,24,34,0.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg: #0A0E13;
+      --surface: #121821;
+      --surface-2: #1A222C;
+      --border: #263140;
+      --border-strong: #37455A;
+      --ink: #EDF1F5;
+      --ink-2: #B4C0CC;
+      --ink-3: #7C8896;
+      --llm: #3987e5;
+      --llm-soft: #17263A;
+      --heur: #d95926;
+      --heur-soft: #2E1D14;
+      --sev-1: #6E3A34;
+      --sev-2: #C2584A;
+      --sev-3: #FF6F5C;
+      --sev-1-ink:#F0D8D4; --sev-2-ink:#0A0E13; --sev-3-ink:#0A0E13;
+      --topo-compact: #1b9e77;
+      --topo-standard: #9089c9;
+      --topo-extended: #e7298a;
+      --grid: #263140;
+      --shock: rgba(255,111,92,0.08);
+      --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 12px 30px -14px rgba(0,0,0,0.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg: #0A0E13;
+    --surface: #121821;
+    --surface-2: #1A222C;
+    --border: #263140;
+    --border-strong: #37455A;
+    --ink: #EDF1F5;
+    --ink-2: #B4C0CC;
+    --ink-3: #7C8896;
+    --llm: #3987e5;
+    --llm-soft: #17263A;
+    --heur: #d95926;
+    --heur-soft: #2E1D14;
+    --sev-1: #6E3A34;
+    --sev-2: #C2584A;
+    --sev-3: #FF6F5C;
+    --sev-1-ink:#F0D8D4; --sev-2-ink:#0A0E13; --sev-3-ink:#0A0E13;
+    --topo-compact: #1b9e77;
+    --topo-standard: #9089c9;
+    --topo-extended: #e7298a;
+    --grid: #263140;
+    --shock: rgba(255,111,92,0.08);
+    --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 12px 30px -14px rgba(0,0,0,0.6);
+  }
+
+  /* ============ BASE ============ */
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing:antialiased;
+    font-size:16px; line-height:1.55;
+  }
+  h1,h2,h3{font-family:var(--serif); font-weight:600; text-wrap:balance; margin:0;}
+  a{color:var(--llm);}
+  ::selection{background:var(--llm-soft); color:var(--ink);}
+  .mono{font-family:var(--mono);}
+  .num{font-variant-numeric:tabular-nums;}
+
+  /* ============ LAYOUT ============ */
+  .app{display:grid; grid-template-columns:248px 1fr; align-items:start;}
+  @media (max-width:860px){ .app{grid-template-columns:1fr;} .rail{display:none;} }
+
+  .rail{
+    position:sticky; top:0; height:100vh; overflow-y:auto;
+    border-right:1px solid var(--border);
+    padding:28px 0 28px 0;
+    background:var(--bg);
+  }
+  .rail-brand{
+    padding:0 22px 18px 22px; border-bottom:1px solid var(--border); margin-bottom:14px;
+  }
+  .rail-brand .tag{font-family:var(--mono); font-size:10.5px; letter-spacing:.09em; color:var(--ink-3); text-transform:uppercase;}
+  .rail-brand .title{font-family:var(--serif); font-size:17px; margin-top:6px; line-height:1.25;}
+  .rail-act{
+    font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); padding:14px 22px 6px 22px;
+  }
+  .rail nav{display:flex; flex-direction:column;}
+  .rail a{
+    display:flex; gap:10px; align-items:baseline;
+    padding:5px 22px; text-decoration:none; color:var(--ink-2);
+    font-size:13px; border-left:2px solid transparent;
+  }
+  .rail a .n{font-family:var(--mono); font-size:10.5px; color:var(--ink-3); width:16px; flex:none;}
+  .rail a:hover{color:var(--ink); background:var(--surface-2);}
+  .rail a.active{color:var(--ink); border-left-color:var(--llm); background:var(--surface-2); font-weight:600;}
+
+  main{min-width:0;}
+  section.slide{
+    padding:64px clamp(24px,5vw,80px);
+    border-bottom:1px solid var(--border);
+    max-width:1180px;
+  }
+  section.slide.cover{max-width:none;}
+  .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink-3); display:flex; gap:10px; align-items:center; margin-bottom:14px;
+  }
+  .eyebrow .idx{color:var(--llm); font-weight:600;}
+  .eyebrow::after{content:""; height:1px; flex:1; background:var(--border);}
+  h2.slide-title{font-size:clamp(24px,3vw,34px); margin-bottom:6px;}
+  .slide-sub{color:var(--ink-2); font-size:15px; max-width:64ch; margin-bottom:32px;}
+  .lede{font-size:18px; line-height:1.65; color:var(--ink-2); max-width:66ch;}
+  .lede strong{color:var(--ink); font-weight:600;}
+  p{max-width:70ch;}
+
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:28px;}
+  .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+  @media (max-width:760px){ .grid-2,.grid-3{grid-template-columns:1fr;} }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:22px 24px; box-shadow:var(--shadow);
+  }
+  .card h4{font-family:var(--sans); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); margin-bottom:10px; font-weight:600;}
+  .card.out{border-style:dashed; box-shadow:none;}
+
+  ul.clean{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px;}
+  ul.clean li{padding-left:18px; position:relative; font-size:14.5px; color:var(--ink-2);}
+  ul.clean li::before{content:"—"; position:absolute; left:0; color:var(--ink-3);}
+  ul.clean.yes li::before{content:"✓"; color:var(--llm);}
+  ul.clean.no li::before{content:"×"; color:var(--ink-3);}
+
+  table{border-collapse:collapse; width:100%; font-size:13.5px;}
+  th,td{text-align:left; padding:8px 12px; border-bottom:1px solid var(--border);}
+  th{font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:600;}
+  td.num, th.num{text-align:right; font-variant-numeric:tabular-nums; font-family:var(--mono);}
+  .table-wrap{overflow-x:auto; border:1px solid var(--border); border-radius:10px; background:var(--surface);}
+  .table-wrap table{margin:0;}
+  .table-wrap th:first-child, .table-wrap td:first-child{padding-left:16px;}
+
+  .badge{
+    display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px;
+    padding:3px 9px; border-radius:99px; font-weight:600; letter-spacing:.02em;
+  }
+  .badge-sev-1{background:var(--sev-1); color:var(--sev-1-ink);}
+  .badge-sev-2{background:var(--sev-2); color:var(--sev-2-ink);}
+  .badge-sev-3{background:var(--sev-3); color:var(--sev-3-ink);}
+  .swatch{width:10px; height:10px; border-radius:3px; display:inline-block;}
+  .sw-llm{background:var(--llm);}
+  .sw-heur{background:var(--heur);}
+  .sw-compact{background:var(--topo-compact);}
+  .sw-standard{background:var(--topo-standard);}
+  .sw-extended{background:var(--topo-extended);}
+
+  .legend{display:flex; gap:20px; align-items:center; font-size:12.5px; color:var(--ink-2); font-family:var(--mono); flex-wrap:wrap;}
+  .legend .item{display:flex; gap:7px; align-items:center;}
+
+  .stat-row{display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+  @media (max-width:760px){.stat-row{grid-template-columns:repeat(2,1fr);}}
+  .stat{
+    border:1px solid var(--border); border-radius:10px; padding:16px 16px; background:var(--surface);
+  }
+  .stat .label{font-family:var(--mono); font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-3);}
+  .stat .value{font-family:var(--serif); font-size:26px; margin-top:6px; font-variant-numeric:tabular-nums;}
+  .stat .value.llm{color:var(--llm);}
+  .stat .value.heur{color:var(--heur);}
+  .stat .sub{font-size:12px; color:var(--ink-3); margin-top:2px;}
+
+  blockquote{
+    margin:0; padding:16px 20px; border-left:3px solid var(--llm); background:var(--llm-soft);
+    border-radius:0 8px 8px 0; font-size:14px; color:var(--ink-2); font-family:var(--mono); line-height:1.6;
+  }
+
+  .chart-wrap{background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px 22px 14px; overflow-x:auto;}
+  .chart-title{font-size:13px; font-weight:600; margin-bottom:2px;}
+  .chart-note{font-family:var(--mono); font-size:11px; color:var(--ink-3); margin-top:8px;}
+  svg text{font-family:var(--mono); fill:var(--ink-2);}
+  svg .axis-line{stroke:var(--border-strong); stroke-width:1;}
+  svg .grid-line{stroke:var(--grid); stroke-width:1;}
+  svg .zero-line{stroke:var(--ink-3); stroke-width:1; stroke-dasharray:2 3;}
+
+  .small-multiples{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+  @media (max-width:900px){.small-multiples{grid-template-columns:1fr;}}
+
+  .kv{display:flex; flex-direction:column; gap:8px; font-size:13px;}
+  .kv .row{display:flex; justify-content:space-between; gap:16px; padding-bottom:8px; border-bottom:1px dotted var(--border);}
+  .kv .row span:first-child{color:var(--ink-3); font-family:var(--mono); font-size:11.5px;}
+  .kv .row span:last-child{font-family:var(--mono); font-weight:600;}
+
+  .foot{padding:40px clamp(24px,5vw,80px) 80px; color:var(--ink-3); font-size:12.5px; font-family:var(--mono);}
+
+  .cover{
+    min-height:92vh; display:flex; flex-direction:column; justify-content:center;
+    background:
+      radial-gradient(1100px 500px at 82% -10%, var(--llm-soft), transparent 60%),
+      radial-gradient(900px 460px at 6% 110%, var(--heur-soft), transparent 55%),
+      var(--bg);
+  }
+  .cover .kicker{font-family:var(--mono); font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); margin-bottom:22px;}
+  .cover h1{font-size:clamp(36px,5.4vw,60px); line-height:1.08; max-width:19ch;}
+  .cover .accent{color:var(--llm);}
+  .cover .accent2{color:var(--heur);}
+  .cover .rq{
+    margin-top:26px; font-size:clamp(17px,2vw,20px); color:var(--ink-2); max-width:58ch; line-height:1.6;
+    border-left:2px solid var(--border-strong); padding-left:18px;
+  }
+  .manifest-strip{
+    margin-top:44px; display:flex; flex-wrap:wrap; gap:0; border:1px solid var(--border); border-radius:10px;
+    overflow:hidden; background:var(--surface); box-shadow:var(--shadow);
+  }
+  .manifest-strip .cell{
+    padding:12px 18px; border-right:1px solid var(--border); flex:1; min-width:150px;
+  }
+  .manifest-strip .cell:last-child{border-right:none;}
+  .manifest-strip .cell .k{font-family:var(--mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3);}
+  .manifest-strip .cell .v{font-family:var(--mono); font-size:12.5px; margin-top:4px; font-weight:600;}
+
+  .two-col-list{display:grid; grid-template-columns:1fr 1fr; gap:24px;}
+  @media (max-width:760px){.two-col-list{grid-template-columns:1fr;}}
+
+  .flow-steps{counter-reset:step; display:flex; flex-direction:column; gap:0; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface);}
+  .flow-steps .step{display:flex; gap:16px; padding:13px 18px; border-bottom:1px solid var(--border); align-items:baseline;}
+  .flow-steps .step:last-child{border-bottom:none;}
+  .flow-steps .step .sn{font-family:var(--mono); color:var(--llm); font-size:12px; width:20px; flex:none;}
+  .flow-steps .step .st{font-size:14px; color:var(--ink-2);}
+  .flow-steps .step .st strong{color:var(--ink); font-weight:600;}
+
+  .findings{border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:20px 22px;}
+  .findings h4{margin:0 0 10px 0; font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:600;}
+
+  /* ============ V2 ADDITIONS ============ */
+
+  /* topology network schematics */
+  .topo-card{background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px 16px 12px; text-align:center;}
+  .topo-card .topo-name{font-size:13px; font-weight:700; margin-bottom:2px;}
+  .topo-card .topo-meta{font-family:var(--mono); font-size:11px; color:var(--ink-3); margin-bottom:8px;}
+  svg.topo-svg{width:100%; height:auto; overflow:visible;}
+  .topo-edge{stroke:var(--border-strong); stroke-width:1.6;}
+  .topo-edge-emergency{stroke:var(--heur); stroke-width:1.4; stroke-dasharray:3 3;}
+  .topo-node-supplier{fill:var(--ink-3);}
+  .topo-node-port{fill:var(--llm);}
+  .topo-node-hub{fill:var(--heur);}
+  .topo-node-plant{fill:var(--ink);}
+
+  /* interaction / ranked charts */
+  svg.interaction-svg{width:100%; height:auto;}
+  .ln-compact{stroke:var(--topo-compact); stroke-width:2.5;}
+  .ln-standard{stroke:var(--topo-standard); stroke-width:2.5;}
+  .ln-extended{stroke:var(--topo-extended); stroke-width:2.5;}
+  .dot-compact{fill:var(--topo-compact);}
+  .dot-standard{fill:var(--topo-standard);}
+  .dot-extended{fill:var(--topo-extended);}
+  .band-compact{fill:var(--topo-compact); opacity:0.12;}
+  .band-standard{fill:var(--topo-standard); opacity:0.12;}
+  .band-extended{fill:var(--topo-extended); opacity:0.12;}
+  .lbl-compact{fill:var(--topo-compact);}
+  .lbl-standard{fill:var(--topo-standard);}
+  .lbl-extended{fill:var(--topo-extended);}
+
+  svg.ranked-svg{width:100%; height:auto;}
+  .bar-llm{fill:var(--llm);}
+  .bar-heur{fill:var(--heur);}
+
+  /* 3x3 grid heatmap */
+  .heatgrid{display:grid; grid-template-columns:120px repeat(3,1fr); gap:6px; align-items:stretch;}
+  .heatgrid .hcorner{}
+  .heatgrid .hcol-label, .heatgrid .hrow-label{
+    display:flex; align-items:center; justify-content:center; font-family:var(--mono);
+    font-size:12px; font-weight:600; color:var(--ink-2);
+  }
+  .heatgrid .hrow-label{justify-content:flex-end; padding-right:10px; text-align:right;}
+  .heatcell{
+    border-radius:10px; padding:16px 14px; min-height:96px; display:flex; flex-direction:column; justify-content:center;
+    border:1px solid var(--border);
+  }
+  .heatcell .hd{font-family:var(--serif); font-size:19px; font-weight:600;}
+  .heatcell .hn{font-family:var(--mono); font-size:11px; color:var(--ink-3); margin-top:4px;}
+  .heatcell .hw{font-family:var(--mono); font-size:10.5px; margin-top:6px; letter-spacing:.02em;}
+
+  /* colophon nav helper */
+  .pill{display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px; padding:2px 9px; border-radius:99px; background:var(--surface-2); color:var(--ink-2); border:1px solid var(--border);}
+</style>
+
+<div class="app">
+  <aside class="rail">
+    <div class="rail-brand">
+      <div class="tag">Internal Review · V2</div>
+      <div class="title">Supply-Chain Agent Evaluation</div>
+    </div>
+    <nav id="railnav">
+      <div class="rail-act">Act I — Why V2</div>
+      <a href="#s01"><span class="n">01</span>Cover</a>
+      <a href="#s02"><span class="n">02</span>The audit</a>
+      <a href="#s03"><span class="n">03</span>Three fixes</a>
+      <div class="rail-act">Act II — What Changed</div>
+      <a href="#s04"><span class="n">04</span>Topology grid</a>
+      <a href="#s05"><span class="n">05</span>Richer randomness</a>
+      <a href="#s06"><span class="n">06</span>What stayed locked</a>
+      <div class="rail-act">Act III — The Launch</div>
+      <a href="#s07"><span class="n">07</span>Nine cells</a>
+      <a href="#s08"><span class="n">08</span>The real run</a>
+      <div class="rail-act">Act IV — Results</div>
+      <a href="#s09"><span class="n">09</span>Headline</a>
+      <a href="#s10"><span class="n">10</span>Full grid</a>
+      <a href="#s11"><span class="n">11</span>Compact</a>
+      <a href="#s12"><span class="n">12</span>Standard</a>
+      <a href="#s13"><span class="n">13</span>Extended</a>
+      <a href="#s14"><span class="n">14</span>Did the fix work?</a>
+      <div class="rail-act">Act V — Close</div>
+      <a href="#s15"><span class="n">15</span>Limitations</a>
+      <a href="#s16"><span class="n">16</span>Open questions</a>
+    </nav>
+  </aside>
+
+  <main>
+    <!-- 01 COVER -->
+    <section class="slide cover" id="s01">
+      <div class="kicker">Version 2 Build — Grid Results Review</div>
+      <h1>Does the LLM's edge <span class="accent">survive</span> a more <span class="accent2">complicated network?</span></h1>
+      <div class="rq">V1 found a single, decisive verdict per disruption severity — but every one of 300 replications agreed with every other, which turned out to be a symptom of an under-randomized, single-topology world. V2 crosses three network topologies against three disruption severities, adds three new sources of genuine per-replication randomness, and re-runs the same paired comparison across all nine cells.</div>
+      <div class="manifest-strip mono">
+        <div class="cell"><div class="k">Grid</div><div class="v">3 topologies × 3 severities</div></div>
+        <div class="cell"><div class="k">Replications</div><div class="v">33×6 + 100×3 = 498 total</div></div>
+        <div class="cell"><div class="k">Model</div><div class="v">gpt-5.4-mini · LIVE</div></div>
+        <div class="cell"><div class="k">Base seeds</div><div class="v">1042 / 2042 / 3042</div></div>
+        <div class="cell"><div class="k">Run date</div><div class="v">2026-08-20</div></div>
+        <div class="cell"><div class="k">Wall-clock</div><div class="v">~4h31m, 3 concurrent</div></div>
+      </div>
+    </section>
+
+    <!-- 02 THE AUDIT -->
+    <section class="slide" id="s02">
+      <div class="eyebrow"><span class="idx">02</span>Act I — Why V2</div>
+      <h2 class="slide-title">Every one of 300 replications agreed with every other</h2>
+      <div class="slide-sub">V1's headline result was clean — the LLM won overwhelmingly under Medium and Heavy disruption, lost consistently under Light. Auditing <em>why</em> the margin was so unanimous is what produced V2.</div>
+      <div class="grid-2">
+        <div class="card">
+          <h4>What the audit found</h4>
+          <p style="margin:0 0 12px; font-size:14.5px; color:var(--ink-2);">In every profile, the mean cost gap between policies was <strong style="color:var(--ink)">7.6×–10.2× larger</strong> than the random noise between replications — a gap the environment's randomness was never designed to be able to bridge. Win rate was <strong style="color:var(--ink)">100%/0% in all three profiles</strong>, never once mixed.</p>
+          <ul class="clean no">
+            <li>Shipment release schedule was fully deterministic — exactly 40 units, every day</li>
+            <li>The disruption's timing, duration, and disclosure were fully known in advance</li>
+            <li>Only 5 nodes, 6 edges, ~3 end-to-end routes — not enough structure for a close call</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>What that means</h4>
+          <p style="margin:0; font-size:14.5px; color:var(--ink-2);">Not that the LLM's advantage was fake — the paired design and cost model were sound. It means the <strong style="color:var(--ink)">experiment</strong> wasn't random enough to ever produce anything but a foregone conclusion. A result that can't vary isn't evidence of robustness — it's evidence the test never had the power to disagree with itself.</p>
+          <blockquote style="margin-top:14px;">win rate 100%/0% in every profile → the mean effect and the noise floor were never close enough to actually compete</blockquote>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 THREE FIXES -->
+    <section class="slide" id="s03">
+      <div class="eyebrow"><span class="idx">03</span>Act I — Why V2</div>
+      <h2 class="slide-title">Three fixed points, three targeted fixes</h2>
+      <p class="lede">Nothing about the simulation physics, cost model, action space, or paired-branch fairness mechanism changes. V2 extends the <strong>inputs</strong> those already-validated mechanisms handle — not the mechanisms themselves.</p>
+      <div class="grid-3" style="margin-top:28px;">
+        <div class="card">
+          <h4>Fix 1 — Topology</h4>
+          <p style="margin:0; font-size:14px; color:var(--ink-2);">One fixed 5-node network becomes three tiers — <strong style="color:var(--ink)">Compact / Standard / Extended</strong> — crossed independently with severity, so route redundancy itself becomes an experimental variable.</p>
+        </div>
+        <div class="card">
+          <h4>Fix 2 — Randomness</h4>
+          <p style="margin:0; font-size:14px; color:var(--ink-2);">Disruption start day, duration, and information delay are now sampled per replication, not fixed in the scenario file. Shipment quantity is sampled too, on Compact/Extended.</p>
+        </div>
+        <div class="card">
+          <h4>Fix 3 — Taxonomy</h4>
+          <p style="margin:0; font-size:14px; color:var(--ink-2);">Demand spikes/drops and supplier-capacity shocks join the six network-side shock types V1 already had, plus correlated compound events sharing one root cause.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 TOPOLOGY GRID -->
+    <section class="slide" id="s04">
+      <div class="eyebrow"><span class="idx">04</span>Act II — What Changed</div>
+      <h2 class="slide-title">Route redundancy as a first-class variable</h2>
+      <div class="slide-sub">Standard is V1's original 5-node network, kept byte-identical — it is exactly the "Standard × Medium" cell of this grid. Compact removes the alternate port entirely; Extended is a real 10-node, 16-edge mesh.</div>
+      <div class="grid-3">
+        <div class="topo-card">
+          <div class="topo-name" style="color:var(--topo-compact)">Compact</div>
+          <div class="topo-meta">4 nodes · 4 edges · 0 non-emergency reroutes</div>
+          <svg viewBox="0 0 240 200" class="topo-svg" role="img" aria-label="compact network schematic">
+            <line x1="30.0" y1="100.0" x2="100.0" y2="100.0" class="topo-edge"/>
+            <line x1="100.0" y1="100.0" x2="170.0" y2="100.0" class="topo-edge"/>
+            <line x1="170.0" y1="100.0" x2="210.0" y2="100.0" class="topo-edge"/>
+            <path d="M 30.0 100.0 Q 120.0 72.0 210.0 100.0" class="topo-edge-emergency" fill="none"/>
+            <circle cx="30.0" cy="100.0" r="7" class="topo-node-supplier"/>
+            <circle cx="100.0" cy="100.0" r="7" class="topo-node-port"/>
+            <circle cx="170.0" cy="100.0" r="7" class="topo-node-hub"/>
+            <circle cx="210.0" cy="100.0" r="7" class="topo-node-plant"/>
+          </svg>
+        </div>
+        <div class="topo-card">
+          <div class="topo-name" style="color:var(--topo-standard)">Standard</div>
+          <div class="topo-meta">5 nodes · 6 edges · 1 non-emergency reroute</div>
+          <svg viewBox="0 0 240 200" class="topo-svg" role="img" aria-label="standard network schematic">
+            <line x1="30.0" y1="100.0" x2="100.0" y2="66.7" class="topo-edge"/>
+            <line x1="30.0" y1="100.0" x2="100.0" y2="133.3" class="topo-edge"/>
+            <line x1="100.0" y1="66.7" x2="170.0" y2="100.0" class="topo-edge"/>
+            <line x1="100.0" y1="133.3" x2="170.0" y2="100.0" class="topo-edge"/>
+            <line x1="170.0" y1="100.0" x2="210.0" y2="100.0" class="topo-edge"/>
+            <path d="M 30.0 100.0 Q 120.0 72.0 210.0 100.0" class="topo-edge-emergency" fill="none"/>
+            <circle cx="30.0" cy="100.0" r="7" class="topo-node-supplier"/>
+            <circle cx="100.0" cy="66.7" r="7" class="topo-node-port"/>
+            <circle cx="100.0" cy="133.3" r="7" class="topo-node-port"/>
+            <circle cx="170.0" cy="100.0" r="7" class="topo-node-hub"/>
+            <circle cx="210.0" cy="100.0" r="7" class="topo-node-plant"/>
+          </svg>
+        </div>
+        <div class="topo-card">
+          <div class="topo-name" style="color:var(--topo-extended)">Extended</div>
+          <div class="topo-meta">10 nodes · 16 edges · 7 non-emergency reroutes</div>
+          <svg viewBox="0 0 240 200" class="topo-svg" role="img" aria-label="extended network schematic">
+            <line x1="30.0" y1="100.0" x2="100.0" y2="40.0" class="topo-edge"/>
+            <line x1="30.0" y1="100.0" x2="100.0" y2="80.0" class="topo-edge"/>
+            <line x1="30.0" y1="100.0" x2="100.0" y2="120.0" class="topo-edge"/>
+            <line x1="30.0" y1="100.0" x2="100.0" y2="160.0" class="topo-edge"/>
+            <line x1="100.0" y1="40.0" x2="170.0" y2="40.0" class="topo-edge"/>
+            <line x1="100.0" y1="80.0" x2="170.0" y2="40.0" class="topo-edge"/>
+            <line x1="100.0" y1="80.0" x2="170.0" y2="80.0" class="topo-edge"/>
+            <line x1="100.0" y1="120.0" x2="170.0" y2="80.0" class="topo-edge"/>
+            <line x1="100.0" y1="120.0" x2="170.0" y2="120.0" class="topo-edge"/>
+            <line x1="100.0" y1="160.0" x2="170.0" y2="120.0" class="topo-edge"/>
+            <line x1="100.0" y1="160.0" x2="170.0" y2="160.0" class="topo-edge"/>
+            <line x1="170.0" y1="40.0" x2="210.0" y2="100.0" class="topo-edge"/>
+            <line x1="170.0" y1="80.0" x2="210.0" y2="100.0" class="topo-edge"/>
+            <line x1="170.0" y1="120.0" x2="210.0" y2="100.0" class="topo-edge"/>
+            <line x1="170.0" y1="160.0" x2="210.0" y2="100.0" class="topo-edge"/>
+            <path d="M 30.0 100.0 Q 120.0 72.0 210.0 100.0" class="topo-edge-emergency" fill="none"/>
+            <circle cx="30.0" cy="100.0" r="7" class="topo-node-supplier"/>
+            <circle cx="100.0" cy="40.0" r="7" class="topo-node-port"/>
+            <circle cx="100.0" cy="80.0" r="7" class="topo-node-port"/>
+            <circle cx="100.0" cy="120.0" r="7" class="topo-node-port"/>
+            <circle cx="100.0" cy="160.0" r="7" class="topo-node-port"/>
+            <circle cx="170.0" cy="40.0" r="7" class="topo-node-hub"/>
+            <circle cx="170.0" cy="80.0" r="7" class="topo-node-hub"/>
+            <circle cx="170.0" cy="120.0" r="7" class="topo-node-hub"/>
+            <circle cx="170.0" cy="160.0" r="7" class="topo-node-hub"/>
+            <circle cx="210.0" cy="100.0" r="7" class="topo-node-plant"/>
+          </svg>
+        </div>
+      </div>
+      <div class="legend" style="margin-top:18px;">
+        <div class="item"><span class="swatch" style="background:var(--ink-3)"></span>supplier</div>
+        <div class="item"><span class="swatch" style="background:var(--llm)"></span>port</div>
+        <div class="item"><span class="swatch" style="background:var(--heur)"></span>hub</div>
+        <div class="item"><span class="swatch" style="background:var(--ink)"></span>plant</div>
+        <div class="item">- - - emergency air lane (always exists, all three tiers)</div>
+      </div>
+      <p style="margin-top:18px; font-size:13.5px; color:var(--ink-2);">Extended's severity scenarios deliberately target <span class="mono">hub_1</span>, not <span class="mono">port_primary</span>: running betweenness centrality on the real graph showed closing the "primary" port only removes 1 of 7 non-emergency paths there, while <span class="mono">hub_1</span> is tied for most central. Compact and Standard, which have no such redundancy, keep targeting <span class="mono">port_primary</span> — their genuine sole chokepoint.</p>
+    </section>
+
+    <!-- 05 RICHER RANDOMNESS -->
+    <section class="slide" id="s05">
+      <div class="eyebrow"><span class="idx">05</span>Act II — What Changed</div>
+      <h2 class="slide-title">Nothing about a disruption is known for certain anymore</h2>
+      <p class="lede">Every new random draw happens once per replication, before either policy makes a single decision — the same upfront-generation fairness rule V1 already used for demand and ordinary delays, extended to cover the disruption itself.</p>
+      <div class="table-wrap" style="margin-top:26px;">
+        <table>
+          <thead><tr><th>What varies now</th><th>V1</th><th>V2</th></tr></thead>
+          <tbody>
+            <tr><td>Disruption start day</td><td class="mono">fixed</td><td class="mono">planned day ± jitter, sampled</td></tr>
+            <tr><td>Disruption duration</td><td class="mono">fixed</td><td class="mono">truncated-normal, sampled</td></tr>
+            <tr><td>Information delay</td><td class="mono">immediate, complete</td><td class="mono">0–N days after physical start, sampled</td></tr>
+            <tr><td>Shipment release quantity</td><td class="mono">exactly 40 units</td><td class="mono">truncated-normal (Compact/Extended); fixed on Standard, by design</td></tr>
+            <tr><td>Shock types available</td><td class="mono">6 (node/edge only)</td><td class="mono">9 — adds demand spike/drop, supplier capacity, compound/cascading events</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:16px; font-size:13px; color:var(--ink-3);">A degenerate case (all uncertainty fields zeroed) reproduces V1's exact fixed-shock behavior bit-for-bit — V2 is a strict superset of V1, proven by a dedicated regression test, not just asserted.</p>
+    </section>
+
+    <!-- 06 WHAT STAYED LOCKED -->
+    <section class="slide" id="s06">
+      <div class="eyebrow"><span class="idx">06</span>Act II — What Changed</div>
+      <h2 class="slide-title">The fairness mechanism this whole system exists to protect</h2>
+      <div class="slide-sub">Every new source of randomness plugs into the same machine V1 already validated. Nothing about how the two policies are compared changed.</div>
+      <div class="two-col-list">
+        <ul class="clean yes">
+          <li>Four-action space — WAIT / REROUTE / EXPEDITE / ABSTAIN — unchanged</li>
+          <li>The shared validator and fallback chain — unchanged</li>
+          <li>The LLM's five approved read-only tools — unchanged</li>
+          <li>Every cost formula — transport, reroute, expedite, holding, backlog, late, terminal — unchanged</li>
+        </ul>
+        <ul class="clean yes">
+          <li>One shared random world per replication, drawn entirely before any decision</li>
+          <li>Four cloned branches per replication — heuristic/LLM × undisrupted/disrupted</li>
+          <li>The undisrupted tape still differs from the disrupted one only by the shock(s)</li>
+          <li><span class="mono">TCD = J(disrupted) − J(undisrupted)</span>, <span class="mono">delta = TCD(LLM) − TCD(heuristic)</span> — unchanged</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 07 NINE CELLS -->
+    <section class="slide" id="s07">
+      <div class="eyebrow"><span class="idx">07</span>Act III — The Launch</div>
+      <h2 class="slide-title">Nine flat experiment files, no new orchestration</h2>
+      <p class="lede">The grid isn't a new mechanism — it's nine ordinary experiment config files, each run independently through the exact same <span class="mono">cli.py run</span> V1 already had.</p>
+      <div class="table-wrap" style="margin-top:24px;">
+        <table>
+          <thead><tr><th>Topology</th><th>Severity</th><th>Scenario target</th><th class="num">Replications</th><th class="num">Base seed</th></tr></thead>
+          <tbody>
+            <tr><td><span class="swatch sw-compact"></span> Compact</td><td>Light / Medium / Heavy</td><td class="mono">port_primary</td><td class="num">33 each</td><td class="num">2042</td></tr>
+            <tr><td><span class="swatch sw-standard"></span> Standard</td><td>Light / Medium / Heavy</td><td class="mono">port_primary</td><td class="num">100 each</td><td class="num">1042</td></tr>
+            <tr><td><span class="swatch sw-extended"></span> Extended</td><td>Light / Medium / Heavy</td><td class="mono">hub_1</td><td class="num">33 each</td><td class="num">3042</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:16px; font-size:13.5px; color:var(--ink-2);">Standard keeps V1's 100-replication scale and 1042 seed unchanged — Standard × Medium <em>is</em> V1's original <span class="mono">baseline_comparison.yaml</span>, unmodified, and stays the one direct link back to that audited run. Each topology column shares one seed across its three severities, mirroring V1's own logic: demand and ordinary delays depend only on <span class="mono">(seed, replication, network edges)</span>, not on which disruption is loaded.</p>
+    </section>
+
+    <!-- 08 THE REAL RUN -->
+    <section class="slide" id="s08">
+      <div class="eyebrow"><span class="idx">08</span>Act III — The Launch</div>
+      <h2 class="slide-title">498 real replications, live, against the OpenAI API</h2>
+      <div class="slide-sub">Calibrated first (3 reps/cell, all nine, 2026-08-17) before committing to the full spend. The full grid launched 2026-08-20 with three concurrent processes, one per topology tier, each running its severities Light → Medium → Heavy sequentially.</div>
+      <div class="stat-row">
+        <div class="stat"><div class="label">Cells completed</div><div class="value">9 / 9</div><div class="sub">exit code 0, all nine</div></div>
+        <div class="stat"><div class="label">Wall-clock</div><div class="value">~4h 31m</div><div class="sub">bounded by Extended (slowest)</div></div>
+        <div class="stat"><div class="label">LLM calls</div><div class="value num">~14.7k</div><div class="sub">estimated from real per-cell rates</div></div>
+        <div class="stat"><div class="label">Mean latency</div><div class="value num">~2.6s</div><div class="sub">per call, measured</div></div>
+      </div>
+      <div class="flow-steps" style="margin-top:26px;">
+        <div class="step"><span class="sn">1</span><span class="st"><strong>Calibrate</strong> — 3 replications/cell at full horizon/drain, all nine cells, before spending the larger amount</span></div>
+        <div class="step"><span class="sn">2</span><span class="st"><strong>Launch</strong> — 3 concurrent background processes, one per topology tier, ordered Light→Medium→Heavy within each (ascending cost, fail cheap first)</span></div>
+        <div class="step"><span class="sn">3</span><span class="st"><strong>Verify</strong> — every completed cell's <span class="mono">summary.json</span> checked for correct replication count before being treated as real, not just an exit code</span></div>
+        <div class="step"><span class="sn">4</span><span class="st"><strong>Regenerate</strong> — grid plots rebuilt against the real output, superseding the calibration-stage demonstration set</span></div>
+      </div>
+    </section>
+
+    <!-- 09 HEADLINE -->
+    <section class="slide" id="s09">
+      <div class="eyebrow"><span class="idx">09</span>Act IV — Results</div>
+      <h2 class="slide-title">Topology doesn't just change the margin — it flips the winner</h2>
+      <div class="slide-sub">Mean delta by severity, one line per topology tier. Negative = LLM cheaper. Shaded bands are 95% CI — every cell's interval excludes zero.</div>
+      <div class="chart-wrap">
+        <div class="chart-title">Mean delta vs. severity, by topology</div>
+        <svg viewBox="0 0 780 380" class="interaction-svg" role="img" aria-label="Mean delta by severity, one line per topology tier">
+          <line x1="64" y1="315.3" x2="670" y2="315.3" class="grid-line"/>
+          <text x="56.0" y="318.3" text-anchor="end" font-size="10">−100,000</text>
+          <line x1="64" y1="222.8" x2="670" y2="222.8" class="grid-line"/>
+          <text x="56.0" y="225.8" text-anchor="end" font-size="10">−10,000</text>
+          <line x1="64" y1="193.5" x2="670" y2="193.5" class="grid-line"/>
+          <text x="56.0" y="196.5" text-anchor="end" font-size="10">−1,000</text>
+          <line x1="64" y1="180.0" x2="670" y2="180.0" class="zero-line"/>
+          <text x="56.0" y="183.0" text-anchor="end" font-size="10">0</text>
+          <line x1="64" y1="166.5" x2="670" y2="166.5" class="grid-line"/>
+          <text x="56.0" y="169.5" text-anchor="end" font-size="10">+1,000</text>
+          <line x1="64" y1="137.2" x2="670" y2="137.2" class="grid-line"/>
+          <text x="56.0" y="140.2" text-anchor="end" font-size="10">+10,000</text>
+          <text x="64.0" y="362.0" text-anchor="middle" font-size="12" font-weight="600">Light</text>
+          <text x="367.0" y="362.0" text-anchor="middle" font-size="12" font-weight="600">Medium</text>
+          <text x="670.0" y="362.0" text-anchor="middle" font-size="12" font-weight="600">Heavy</text>
+          <path d="M 64.0 166.9 L 367.0 196.2 L 670.0 282.1" class="ln-compact" fill="none"/>
+          <polygon points="64.0,167.8 367.0,200.1 670.0,292.3 670.0,270.7 367.0,191.0 64.0,166.1" class="band-compact"/>
+          <circle cx="64.0" cy="166.9" r="5" class="dot-compact"/>
+          <circle cx="367.0" cy="196.2" r="5" class="dot-compact"/>
+          <circle cx="670.0" cy="282.1" r="5" class="dot-compact"/>
+          <text x="680.0" y="286.1" font-size="13" font-weight="700" class="lbl-compact">Compact</text>
+          <text x="64.0" y="182.9" text-anchor="middle" font-size="9.5" class="lbl-compact">+934</text>
+          <text x="367.0" y="212.2" text-anchor="middle" font-size="9.5" class="lbl-compact">−1,436</text>
+          <text x="670.0" y="298.1" text-anchor="middle" font-size="9.5" class="lbl-compact">−56,915</text>
+          <path d="M 64.0 167.0 L 367.0 207.7 L 670.0 323.1" class="ln-standard" fill="none"/>
+          <polygon points="64.0,167.5 367.0,209.3 670.0,330.0 670.0,315.8 367.0,206.0 64.0,166.6" class="band-standard"/>
+          <circle cx="64.0" cy="167.0" r="5" class="dot-standard"/>
+          <circle cx="367.0" cy="207.7" r="5" class="dot-standard"/>
+          <circle cx="670.0" cy="323.1" r="5" class="dot-standard"/>
+          <text x="680.0" y="327.1" font-size="13" font-weight="700" class="lbl-standard">Standard</text>
+          <text x="64.0" y="155.0" text-anchor="middle" font-size="9.5" class="lbl-standard">+921</text>
+          <text x="367.0" y="195.7" text-anchor="middle" font-size="9.5" class="lbl-standard">−4,192</text>
+          <text x="670.0" y="311.1" text-anchor="middle" font-size="9.5" class="lbl-standard">−111,850</text>
+          <path d="M 64.0 162.7 L 367.0 149.2 L 670.0 116.4" class="ln-extended" fill="none"/>
+          <polygon points="64.0,163.7 367.0,151.2 670.0,122.7 670.0,110.7 367.0,147.4 64.0,161.7" class="band-extended"/>
+          <circle cx="64.0" cy="162.7" r="5" class="dot-extended"/>
+          <circle cx="367.0" cy="149.2" r="5" class="dot-extended"/>
+          <circle cx="670.0" cy="116.4" r="5" class="dot-extended"/>
+          <text x="680.0" y="120.4" font-size="13" font-weight="700" class="lbl-extended">Extended</text>
+          <text x="64.0" y="152.7" text-anchor="middle" font-size="9.5" class="lbl-extended">+1,636</text>
+          <text x="367.0" y="139.2" text-anchor="middle" font-size="9.5" class="lbl-extended">+5,176</text>
+          <text x="670.0" y="106.4" text-anchor="middle" font-size="9.5" class="lbl-extended">+22,114</text>
+        </svg>
+        <div class="chart-note">y-axis is signed-sqrt scaled so both the ±1,000-scale Light cells and the ±100,000-scale Heavy cells stay legible on one chart. Values are real mean deltas, n=33 (Compact/Extended) or n=100 (Standard).</div>
+      </div>
+      <p style="margin-top:20px; font-size:15px; color:var(--ink-2); max-width:74ch;">Compact and Standard both trace the pattern V1 first found: heuristic wins Light, LLM dominates by Heavy. Extended draws the opposite line entirely — the heuristic's advantage <em>grows</em> with severity. More structural route redundancy did not make the LLM's job easier; it seems to have made the heuristic's simpler, faster, lowest-estimated-cost search more competitive precisely when there's more to search.</p>
+    </section>
+
+    <!-- 10 FULL GRID -->
+    <section class="slide" id="s10">
+      <div class="eyebrow"><span class="idx">10</span>Act IV — Results</div>
+      <h2 class="slide-title">All nine cells, mean delta and win rate</h2>
+      <div class="slide-sub">Color intensity is magnitude on the same diverging scale used throughout this deck — orange (heuristic-favorable) through white through blue (LLM-favorable).</div>
+      <div class="heatgrid">
+        <div class="hcorner"></div>
+        <div class="hcol-label">Light</div>
+        <div class="hcol-label">Medium</div>
+        <div class="hcol-label">Heavy</div>
+
+        <div class="hrow-label">Compact</div>
+        <div class="heatcell" style="background:color-mix(in srgb, var(--heur) 18%, var(--surface));"><div class="hd">+934</div><div class="hn">n=33 · CI [814, 1055]</div><div class="hw">heuristic 100%</div></div>
+        <div class="heatcell" style="background:color-mix(in srgb, var(--llm) 28%, var(--surface));"><div class="hd">−1,436</div><div class="hn">n=33 · CI [−2210, −663]</div><div class="hw">LLM 75.8% / heur 24.2%</div></div>
+        <div class="heatcell" style="background:color-mix(in srgb, var(--llm) 82%, var(--surface)); color:#fff;"><div class="hd">−56,915</div><div class="hn" style="color:rgba(255,255,255,.75)">n=33 · CI [−68896, −44934]</div><div class="hw">LLM 100%</div></div>
+
+        <div class="hrow-label">Standard</div>
+        <div class="heatcell" style="background:color-mix(in srgb, var(--heur) 18%, var(--surface));"><div class="hd">+921</div><div class="hn">n=100 · CI [857, 985]</div><div class="hw">heuristic 100%</div></div>
+        <div class="heatcell" style="background:color-mix(in srgb, var(--llm) 45%, var(--surface));"><div class="hd">−4,192</div><div class="hn">n=100 · CI [−4682, −3702]</div><div class="hw">LLM 100%</div></div>
+        <div class="heatcell" style="background:color-mix(in srgb, var(--llm) 95%, var(--surface)); color:#fff;"><div class="hd">−111,850</div><div class="hn" style="color:rgba(255,255,255,.75)">n=100 · CI [−122960, −100741]</div><div class="hw">LLM 100%</div></div>
+
+        <div class="hrow-label">Extended</div>
+        <div class="heatcell" style="background:color-mix(in srgb, var(--heur) 26%, var(--surface));"><div class="hd">+1,636</div><div class="hn">n=33 · CI [1451, 1820]</div><div class="hw">heuristic 100%</div></div>
+        <div class="heatcell" style="background:color-mix(in srgb, var(--heur) 55%, var(--surface));"><div class="hd">+5,176</div><div class="hn">n=33 · CI [4536, 5817]</div><div class="hw">heuristic 100%</div></div>
+        <div class="heatcell" style="background:color-mix(in srgb, var(--heur) 88%, var(--surface)); color:#fff;"><div class="hd">+22,114</div><div class="hn" style="color:rgba(255,255,255,.75)">n=33 · CI [17950, 26279]</div><div class="hw">heuristic 100%</div></div>
+      </div>
+      <p style="margin-top:20px; font-size:13.5px; color:var(--ink-2);">Every one of the nine cells' 95% CI excludes zero — every effect shown here is real at this sample size, not noise. Only one cell is not unanimous: <strong style="color:var(--ink)">Compact × Medium</strong>, where the LLM wins 75.8% of replications rather than 0% or 100%.</p>
+    </section>
+
+    <!-- 11 COMPACT -->
+    <section class="slide" id="s11">
+      <div class="eyebrow"><span class="idx">11</span>Act IV — Results</div>
+      <h2 class="slide-title"><span class="swatch sw-compact" style="margin-right:8px;"></span>Compact — the grid's one genuinely mixed cell</h2>
+      <div class="slide-sub">4 nodes, 0 non-emergency reroutes — a shipment caught by the port closure can only WAIT or EXPEDITE. A deliberately constrained decision space.</div>
+      <div class="stat-row">
+        <div class="stat"><div class="label">Light</div><div class="value heur num">+934</div><div class="sub">heuristic wins 100%</div></div>
+        <div class="stat"><div class="label">Medium</div><div class="value llm num">−1,436</div><div class="sub">LLM wins 75.8% — not unanimous</div></div>
+        <div class="stat"><div class="label">Heavy</div><div class="value llm num">−56,915</div><div class="sub">LLM wins 100%</div></div>
+        <div class="stat"><div class="label">n / cell</div><div class="value num">33</div><div class="sub">base seed 2042</div></div>
+      </div>
+      <div class="chart-wrap" style="margin-top:24px;">
+        <div class="chart-title">Compact × Medium — all 33 replications, ranked by delta</div>
+        <svg viewBox="0 0 780 220" class="ranked-svg" role="img" aria-label="33 replications of Compact x Medium ranked by delta">
+          <line x1="20" y1="98.0" x2="760" y2="98.0" class="zero-line"/>
+          <rect x="20.6" y="98.0" width="21.2" height="80.0" class="bar-llm"/>
+          <rect x="43.0" y="98.0" width="21.2" height="52.4" class="bar-llm"/>
+          <rect x="65.4" y="98.0" width="21.2" height="45.0" class="bar-llm"/>
+          <rect x="87.9" y="98.0" width="21.2" height="31.7" class="bar-llm"/>
+          <rect x="110.3" y="98.0" width="21.2" height="30.3" class="bar-llm"/>
+          <rect x="132.7" y="98.0" width="21.2" height="29.7" class="bar-llm"/>
+          <rect x="155.1" y="98.0" width="21.2" height="28.9" class="bar-llm"/>
+          <rect x="177.6" y="98.0" width="21.2" height="27.9" class="bar-llm"/>
+          <rect x="200.0" y="98.0" width="21.2" height="22.4" class="bar-llm"/>
+          <rect x="222.4" y="98.0" width="21.2" height="19.5" class="bar-llm"/>
+          <rect x="244.8" y="98.0" width="21.2" height="18.1" class="bar-llm"/>
+          <rect x="267.3" y="98.0" width="21.2" height="12.6" class="bar-llm"/>
+          <rect x="289.7" y="98.0" width="21.2" height="8.8" class="bar-llm"/>
+          <rect x="312.1" y="98.0" width="21.2" height="8.2" class="bar-llm"/>
+          <rect x="334.5" y="98.0" width="21.2" height="8.1" class="bar-llm"/>
+          <rect x="357.0" y="98.0" width="21.2" height="6.0" class="bar-llm"/>
+          <rect x="379.4" y="98.0" width="21.2" height="5.6" class="bar-llm"/>
+          <rect x="401.8" y="98.0" width="21.2" height="3.9" class="bar-llm"/>
+          <rect x="424.2" y="98.0" width="21.2" height="3.5" class="bar-llm"/>
+          <rect x="446.7" y="98.0" width="21.2" height="3.3" class="bar-llm"/>
+          <rect x="469.1" y="98.0" width="21.2" height="2.8" class="bar-llm"/>
+          <rect x="491.5" y="98.0" width="21.2" height="2.7" class="bar-llm"/>
+          <rect x="513.9" y="98.0" width="21.2" height="0.7" class="bar-llm"/>
+          <rect x="536.4" y="98.0" width="21.2" height="0.7" class="bar-llm"/>
+          <rect x="558.8" y="98.0" width="21.2" height="0.1" class="bar-llm"/>
+          <rect x="581.2" y="97.1" width="21.2" height="0.9" class="bar-heur"/>
+          <rect x="603.6" y="96.8" width="21.2" height="1.2" class="bar-heur"/>
+          <rect x="626.1" y="96.1" width="21.2" height="1.9" class="bar-heur"/>
+          <rect x="648.5" y="94.8" width="21.2" height="3.2" class="bar-heur"/>
+          <rect x="670.9" y="92.5" width="21.2" height="5.5" class="bar-heur"/>
+          <rect x="693.3" y="89.5" width="21.2" height="8.5" class="bar-heur"/>
+          <rect x="715.8" y="89.0" width="21.2" height="9.0" class="bar-heur"/>
+          <rect x="738.2" y="87.6" width="21.2" height="10.4" class="bar-heur"/>
+          <text x="20" y="212" font-size="11" class="lbl-compact" style="fill:var(--llm)">← LLM cheaper (25/33)</text>
+          <text x="760" y="212" text-anchor="end" font-size="11" style="fill:var(--heur)">heuristic cheaper (8/33) →</text>
+        </svg>
+        <div class="chart-note">Real per-replication deltas, sorted. This is the first cell in either version of this project to land anywhere but 0% or 100%.</div>
+      </div>
+    </section>
+
+    <!-- 12 STANDARD -->
+    <section class="slide" id="s12">
+      <div class="eyebrow"><span class="idx">12</span>Act IV — Results</div>
+      <h2 class="slide-title"><span class="swatch sw-standard" style="margin-right:8px;"></span>Standard — the anchor to V1, and a consistency check</h2>
+      <div class="slide-sub">V1's exact 5-node network and Medium scenario, re-run at V2's full scale. If the machinery were broken, this is the cell that would show it.</div>
+      <div class="stat-row">
+        <div class="stat"><div class="label">Light</div><div class="value heur num">+921</div><div class="sub">heuristic wins 100%</div></div>
+        <div class="stat"><div class="label">Medium <span class="pill">= V1's baseline_comparison</span></div><div class="value llm num">−4,192</div><div class="sub">LLM wins 100%</div></div>
+        <div class="stat"><div class="label">Heavy</div><div class="value llm num">−111,850</div><div class="sub">LLM wins 100%</div></div>
+        <div class="stat"><div class="label">n / cell</div><div class="value num">100</div><div class="sub">base seed 1042, V1-unchanged</div></div>
+      </div>
+      <p style="margin-top:22px; font-size:15px; color:var(--ink-2); max-width:72ch;">Standard × Medium is not a new result — it is V1's <span class="mono">baseline_comparison.yaml</span>, unmodified, re-run under V2's live infrastructure. LLM wins 100% of 100 replications, matching V1's original historical pattern for this exact cell. Standard × Light and × Heavy follow the same Light-loses / Heavy-dominates shape V1 already established — this tier is functioning as designed: a stable reference point the other two tiers can be judged against, not a new finding on its own.</p>
+    </section>
+
+    <!-- 13 EXTENDED -->
+    <section class="slide" id="s13">
+      <div class="eyebrow"><span class="idx">13</span>Act IV — Results</div>
+      <h2 class="slide-title"><span class="swatch sw-extended" style="margin-right:8px;"></span>Extended — the one tier where the heuristic wins bigger under worse conditions</h2>
+      <div class="slide-sub">10 nodes, 16 edges, 7 structurally distinct non-emergency paths. The richest decision space in the grid — and the only tier where severity helps the heuristic.</div>
+      <div class="stat-row">
+        <div class="stat"><div class="label">Light</div><div class="value heur num">+1,636</div><div class="sub">heuristic wins 100%</div></div>
+        <div class="stat"><div class="label">Medium</div><div class="value heur num">+5,176</div><div class="sub">heuristic wins 100%</div></div>
+        <div class="stat"><div class="label">Heavy</div><div class="value heur num">+22,114</div><div class="sub">heuristic wins 100%</div></div>
+        <div class="stat"><div class="label">n / cell</div><div class="value num">33</div><div class="sub">base seed 3042</div></div>
+      </div>
+      <div class="findings" style="margin-top:24px;">
+        <h4>A plausible mechanism, not yet a proven one</h4>
+        <p style="margin:0; font-size:14.5px; color:var(--ink-2);">The heuristic evaluates every candidate route by lowest estimated cost and never has to reason about which of many plausible paths is worth exploring — with 7 real alternatives, that exhaustive-but-cheap search may simply out-compete a bounded, tool-call-limited agent making judgment calls under more genuine ambiguity. It's also the tier whose severity scenarios target <span class="mono">hub_1</span> rather than <span class="mono">port_primary</span>, so the disruption mechanism itself isn't identical to Compact/Standard's — a confound this deck doesn't fully resolve (see Limitations).</p>
+      </div>
+    </section>
+
+    <!-- 14 DID THE FIX WORK -->
+    <section class="slide" id="s14">
+      <div class="eyebrow"><span class="idx">14</span>Act IV — Results</div>
+      <h2 class="slide-title">Did V2 actually fix the thing the audit found?</h2>
+      <div class="slide-sub">The direct test: |mean delta| ÷ stdev(delta) across replications, computed identically for V1's real 100-rep runs and every V2 cell.</div>
+      <div class="chart-wrap">
+        <div class="chart-title">Signal-to-noise ratio, V1 baseline vs. every V2 cell</div>
+        <svg viewBox="0 0 780 272" role="img" aria-label="signal to noise ratio by cell versus V1 baseline">
+          <rect x="20" y="72.4" width="740" height="40.2" fill="var(--ink-3)" opacity="0.14"/>
+          <line x1="20" y1="230.0" x2="760" y2="230.0" stroke="var(--border-strong)" stroke-width="1"/>
+          <text x="760" y="66.4" text-anchor="end" font-size="10.5" fill="var(--ink-3)">V1 audited range: 7.6&#215;&#8211;10.2&#215;</text>
+          <rect x="27.0" y="189.8" width="68.2" height="40.2" style="fill:var(--topo-compact)" opacity="0.6" rx="2"/>
+          <text x="61.1" y="183.8" text-anchor="middle" font-size="11" font-weight="700">2.6&#215;</text>
+          <text x="61.1" y="246.0" text-anchor="middle" font-size="10">Compact</text>
+          <text x="61.1" y="258.0" text-anchor="middle" font-size="10" fill="var(--ink-3)">Light</text>
+          <rect x="109.2" y="220.7" width="68.2" height="9.3" style="fill:var(--topo-compact)" opacity="0.6" rx="2"/>
+          <text x="143.3" y="214.7" text-anchor="middle" font-size="11" font-weight="700">0.6&#215;</text>
+          <text x="143.3" y="246.0" text-anchor="middle" font-size="10">Compact</text>
+          <text x="143.3" y="258.0" text-anchor="middle" font-size="10" fill="var(--ink-3)">Medium</text>
+          <rect x="191.4" y="205.3" width="68.2" height="24.7" style="fill:var(--topo-compact)" opacity="0.6" rx="2"/>
+          <text x="225.6" y="199.3" text-anchor="middle" font-size="11" font-weight="700">1.6&#215;</text>
+          <text x="225.6" y="246.0" text-anchor="middle" font-size="10">Compact</text>
+          <text x="225.6" y="258.0" text-anchor="middle" font-size="10" fill="var(--ink-3)">Heavy</text>
+          <rect x="273.7" y="186.7" width="68.2" height="43.3" style="fill:var(--topo-standard)" opacity="0.6" rx="2"/>
+          <text x="307.8" y="180.7" text-anchor="middle" font-size="11" font-weight="700">2.8&#215;</text>
+          <text x="307.8" y="246.0" text-anchor="middle" font-size="10">Standard</text>
+          <text x="307.8" y="258.0" text-anchor="middle" font-size="10" fill="var(--ink-3)">Light</text>
+          <rect x="355.9" y="203.7" width="68.2" height="26.3" style="fill:var(--topo-standard)" opacity="0.6" rx="2"/>
+          <text x="390.0" y="197.7" text-anchor="middle" font-size="11" font-weight="700">1.7&#215;</text>
+          <text x="390.0" y="246.0" text-anchor="middle" font-size="10">Standard</text>
+          <text x="390.0" y="258.0" text-anchor="middle" font-size="10" fill="var(--ink-3)">Medium</text>
+          <rect x="438.1" y="199.1" width="68.2" height="30.9" style="fill:var(--topo-standard)" opacity="0.6" rx="2"/>
+          <text x="472.2" y="193.1" text-anchor="middle" font-size="11" font-weight="700">2.0&#215;</text>
+          <text x="472.2" y="246.0" text-anchor="middle" font-size="10">Standard</text>
+          <text x="472.2" y="258.0" text-anchor="middle" font-size="10" fill="var(--ink-3)">Heavy</text>
+          <rect x="520.3" y="183.6" width="68.2" height="46.4" style="fill:var(--topo-extended)" opacity="0.6" rx="2"/>
+          <text x="554.4" y="177.6" text-anchor="middle" font-size="11" font-weight="700">3.0&#215;</text>
+          <text x="554.4" y="246.0" text-anchor="middle" font-size="10">Extended</text>
+          <text x="554.4" y="258.0" text-anchor="middle" font-size="10" fill="var(--ink-3)">Light</text>
+          <rect x="602.6" y="188.3" width="68.2" height="41.7" style="fill:var(--topo-extended)" opacity="0.6" rx="2"/>
+          <text x="636.7" y="182.3" text-anchor="middle" font-size="11" font-weight="700">2.7&#215;</text>
+          <text x="636.7" y="246.0" text-anchor="middle" font-size="10">Extended</text>
+          <text x="636.7" y="258.0" text-anchor="middle" font-size="10" fill="var(--ink-3)">Medium</text>
+          <rect x="684.8" y="200.6" width="68.2" height="29.4" style="fill:var(--topo-extended)" opacity="0.6" rx="2"/>
+          <text x="718.9" y="194.6" text-anchor="middle" font-size="11" font-weight="700">1.9&#215;</text>
+          <text x="718.9" y="246.0" text-anchor="middle" font-size="10">Extended</text>
+          <text x="718.9" y="258.0" text-anchor="middle" font-size="10" fill="var(--ink-3)">Heavy</text>
+        </svg>
+        <div class="chart-note">Every V2 cell sits at 0.6×–3.0× — well under V1's 7.6×–10.2×. This is the direct, self-computing evidence that V2's redesign fixed the exact problem the audit found, not a number quoted from prose.</div>
+      </div>
+    </section>
+
+    <!-- 15 LIMITATIONS -->
+    <section class="slide" id="s15">
+      <div class="eyebrow"><span class="idx">15</span>Act V — Close</div>
+      <h2 class="slide-title">What this does and doesn't show</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h4>What it shows</h4>
+          <ul class="clean yes">
+            <li>The audit's root cause is genuinely fixed — signal-to-noise dropped from ~9× to under 3× everywhere</li>
+            <li>At least one cell (Compact × Medium) now produces a real, mixed win rate</li>
+            <li>Topology materially changes which policy wins, not just by how much</li>
+            <li>Standard reproduces V1's original pattern, validating the machinery didn't break</li>
+          </ul>
+        </div>
+        <div class="card out">
+          <h4>What it doesn't show</h4>
+          <ul class="clean no">
+            <li>Extended's severity scenarios target <span class="mono">hub_1</span>, not <span class="mono">port_primary</span> — the reversal is entangled with a different shock target, not topology alone</li>
+            <li>Standard's shipment quantity stays fixed (a deliberate V1 anchor) while Compact/Extended's varies — a real, acknowledged confound on any Standard-vs-other comparison</li>
+            <li>33 replications/cell (vs. Standard's 100) is real statistical power, but less than V1's original single-profile runs had</li>
+            <li>One model, one temperature, one prompt — this is a policy-design finding, not a claim about LLMs generally</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 16 OPEN QUESTIONS -->
+    <section class="slide" id="s16">
+      <div class="eyebrow"><span class="idx">16</span>Act V — Close</div>
+      <h2 class="slide-title">Open questions this grid raises, not answers</h2>
+      <p class="lede">The most interesting finding here isn't "the LLM wins" or "the LLM loses" — it's that <strong>which one wins depends on the shape of the network</strong>, in a direction that isn't obvious in advance. That's a real result, and also an invitation.</p>
+      <div class="flow-steps" style="margin-top:26px;">
+        <div class="step"><span class="sn">1</span><span class="st">Is Extended's reversal about route <strong>count</strong>, or about the <span class="mono">hub_1</span> vs. <span class="mono">port_primary</span> target — a same-target Extended scenario would separate the two</span></div>
+        <div class="step"><span class="sn">2</span><span class="st">Does giving Standard the same quantity variance Compact/Extended have change its numbers materially, closing the one acknowledged confound</span></div>
+        <div class="step"><span class="sn">3</span><span class="st">Do the demand-side and supplier-side shock types (built, validated, not yet run at grid scale) change the picture further</span></div>
+        <div class="step"><span class="sn">4</span><span class="st">Does a larger per-cell replication count on Compact/Extended sharpen or soften Compact × Medium's 75.8/24.2 split</span></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="foot">Generated from <span class="mono">outputs/{compact,light_port_disruption,baseline_port_closure,heavy_port_disruption,extended}_*_comparison__20260820*</span> · Version 2 build contract, <span class="mono">CLAUDE.md</span> §V2.1–V2.12 · figures computed directly from each cell's <span class="mono">summary.json</span> / <span class="mono">replications.csv</span>, no intermediate rounding beyond display · companion static plots in <span class="mono">analysis/plots/v2_grid_full/</span></div>
+
+<script>
+(function(){
+  "use strict";
+  var links = Array.prototype.slice.call(document.querySelectorAll("#railnav a"));
+  var sections = links.map(function(a){ return document.querySelector(a.getAttribute("href")); });
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      var idx = sections.indexOf(entry.target);
+      if (idx === -1) return;
+      if (entry.isIntersecting){
+        links.forEach(function(l){l.classList.remove("active");});
+        links[idx].classList.add("active");
+      }
+    });
+  }, {rootMargin: "-10% 0px -70% 0px", threshold: 0});
+  sections.forEach(function(s){ if (s) io.observe(s); });
+})();
+</script>
+</body>
+</html>
