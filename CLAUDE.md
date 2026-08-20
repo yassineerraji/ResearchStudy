@@ -743,7 +743,7 @@ This is a cost/power tradeoff, not a scientific rule, so it is **not locked** th
 replications: 33   # per grid cell, 297 total
 ```
 
-**Calibration has since run (2026-08-17):** a real 3-replication run at full horizon/drain now exists for all nine cells under `outputs/*_calibration__20260817*`, giving a measured per-cell cost rather than the estimate below. `replications: 33` is written into the configs now; if that measured cost differs materially from the ~$0.05–$0.06/replication this section assumed, this number may still be revisited before the full 33-rep grid runs — that full-grid run (Milestone 16) still requires Yassine's explicit go-ahead to spend the larger amount, per V1 §10's "no coding agent may silently pick a scientific parameter" discipline; only the smaller calibration spend has happened so far.
+**Calibration ran 2026-08-17** (a real 3-replication run at full horizon/drain for all nine cells under `outputs/*_calibration__20260817*`), and **the full grid ran 2026-08-20 with Yassine's explicit go-ahead** (Milestone 16) — all nine cells at their locked `replications` count (33 for Compact/Extended, 100 for Standard), live OpenAI API, ~4h31m wall-clock across three concurrent per-topology processes, all exit code 0. Token usage scaled roughly as calibration predicted (e.g. Extended × Heavy measured ~228.8k tokens/replication over the real 33-rep run, vs. ~261.8k/replication implied by the 3-rep calibration — within ~13%, well inside normal replication-to-replication variance for an n=3 estimate); actual billed dollar cost was not independently reconciled here and would need to come from the OpenAI account's own billing view, not from anything the repo records.
 
 ## V2.9 Testing contract additions
 
@@ -819,7 +819,13 @@ Build `topology_compact.yaml` and `topology_extended.yaml` exactly per V2.3.1's 
 
 ### Milestone 16 — Full V2 grid execution
 
-Run the full, Yassine-confirmed `replications`-per-cell grid (V2.8.2) end to end, all nine cells, `fail_fast=true` per cell as in V1. Done when: all nine cells complete; `summary.json` exists for each; the cross-cell heatmap and V1's existing per-experiment plots (V1's `analysis/plot_results.py` base functionality, unchanged) both render on the real full-grid output.
+**Done (2026-08-20).** Run the full, Yassine-confirmed `replications`-per-cell grid (V2.8.2) end to end, all nine cells, `fail_fast=true` per cell as in V1. Done when: all nine cells complete; `summary.json` exists for each; the cross-cell heatmap and V1's existing per-experiment plots (V1's `analysis/plot_results.py` base functionality, unchanged) both render on the real full-grid output.
+
+All nine cells completed with exit code 0 (three concurrent processes, one per topology tier, each running its three severities sequentially Light→Medium→Heavy; ~4h31m wall-clock, live OpenAI API throughout). Output directories: `compact_{light,medium,heavy}_comparison__20260820*`, `light_port_disruption_comparison__20260820*` / `baseline_port_closure_comparison__20260820*` / `heavy_port_disruption_comparison__20260820*` (Standard), `extended_{light,medium,heavy}_comparison__20260820*`. Every cell's 95% CI on mean delta excludes zero — all nine are real effects, not noise, at these sample sizes (33 for Compact/Extended, 100 for Standard).
+
+**Headline result:** topology reverses the story. Standard and Compact both show the LLM's cost advantage growing with severity (heuristic wins Light, LLM dominates by Heavy — Standard: +921 → −4,192 → −111,850 mean delta; Compact: +935 → −1,436 → −56,915). Extended shows the opposite: the heuristic wins increasingly decisively as severity rises (+1,636 → +5,176 → +22,114). Extended's much richer route redundancy (7 structurally distinct non-emergency paths vs. Standard's ~2 and Compact's 0) appears to favor the simpler heuristic once conditions get bad, while the LLM's advantage in the other two tiers tracks a more constrained decision space. Compact × Medium is the one genuinely mixed cell across the whole grid (LLM wins 75.8% of replications, not unanimous) — the first non-100%/0% result either version of this project has produced, direct evidence the V2 redesign fixed the audit finding it was built to fix (V2.9/plot 14: every cell's signal-to-noise ratio, computed the same way as V1's audited 7.6×–10.2×, now sits well under 3× even at full replication count).
+
+Regenerated grid plots (08, 11–15) against this real output live in `analysis/plots/v2_grid_full/grid/` (superseding the earlier 3-rep `v2_grid_calibration/` demonstration set, which stays as a historical record).
 
 Do not start a milestone whose required predecessor is failing, per V1 §9's unchanged discipline.
 
@@ -848,8 +854,8 @@ V2 is complete only when all are true, additively to V1 §9 (which remains fully
 
 ### Grid and metrics
 
-- all nine grid cells validate and, once Yassine confirms a replication count, run to completion;
-- the disruption-robustness heatmap (deferred from V1) renders correctly across the full grid;
+- all nine grid cells validate and run to completion — **done, Milestone 16, 2026-08-20**, all nine at exit code 0;
+- the disruption-robustness heatmap (deferred from V1) renders correctly across the full grid — **done**, against the real full-grid output in `analysis/plots/v2_grid_full/grid/`;
 - V1's existing metrics (TCD, delta, win rates, CI) are calculated identically per cell, with no formula change.
 
 ### Quality

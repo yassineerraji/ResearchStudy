@@ -1,5 +1,4 @@
 """Turns one or more experiment output directories into the plot set defined
-by VISUAL_REPORTING_PLAN_ESSENTIAL.md.
 
 Standalone script, deliberately outside src/supply_chain_simulator: it only
 ever reads the CSV/JSON/JSONL files data_io/writers.py already produces
