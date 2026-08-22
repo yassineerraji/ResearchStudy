@@ -1,0 +1,90 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chart {
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+}
+
+.axisLabel {
+  fill: var(--text-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cellBorder {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.cellValue {
+  fill: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cellSub {
+  fill: var(--text-secondary);
+  font-size: 10px;
+}
+
+.blankCell {
+  fill: var(--surface-1);
+  stroke: var(--gridline);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.blankLabel {
+  fill: var(--text-muted);
+  font-size: 11px;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.legendSwatchHatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+  background-image: repeating-linear-gradient(45deg, var(--text-muted) 0 1.5px, transparent 1.5px 6px);
+  border: 1px solid var(--border);
+}
+
+.legendSwatchBlank {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+  background: var(--surface-1);
+  border: 1px dashed var(--gridline);
+}

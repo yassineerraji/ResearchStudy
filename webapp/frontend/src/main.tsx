@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import Landing from './pages/Landing.tsx'
+import Findings from './pages/Findings.tsx'
 import Gallery from './pages/Gallery.tsx'
 import GalleryRunDetail from './pages/GalleryRunDetail.tsx'
 import NewRun from './pages/NewRun.tsx'
@@ -15,6 +16,7 @@ createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route element={<App />}>
           <Route index element={<Landing />} />
+          <Route path="findings" element={<Findings />} />
           <Route path="gallery" element={<Gallery />} />
           <Route path="gallery/:directory" element={<GalleryRunDetail />} />
           <Route path="runs/new" element={<NewRun />} />

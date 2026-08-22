@@ -11,6 +11,7 @@ import type {
   ConfigSchemaResponse,
   ExperimentDetail,
   ExperimentListResponse,
+  GridResponse,
   ReplaySlice,
   RunLimits,
   RunStatus,
@@ -51,6 +52,10 @@ export function listExperiments(): Promise<ExperimentListResponse> {
 
 export function getExperimentDetail(directory: string): Promise<ExperimentDetail> {
   return getJson<ExperimentDetail>(`/gallery/${encodeURIComponent(directory)}`)
+}
+
+export function getGrid(): Promise<GridResponse> {
+  return getJson<GridResponse>('/gallery/grid')
 }
 
 export function getReplaySlice(

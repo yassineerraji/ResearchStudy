@@ -1,3 +1,26 @@
+.viewToggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.viewButton,
+.viewButtonActive {
+  border: none;
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.viewButtonActive {
+  background: var(--text-primary);
+  color: var(--page-plane);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

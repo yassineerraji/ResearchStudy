@@ -1,0 +1,103 @@
+.findings {
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+.findings h1 {
+  font-size: 1.8rem;
+  line-height: 1.25;
+}
+
+.lede {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+}
+
+.findings section {
+  margin-top: 28px;
+}
+
+.findings h2 {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.findings p {
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.findings code {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+}
+
+.severityRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.severityCard {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-1);
+  text-align: center;
+}
+
+.severityLabel {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+
+.severityValue {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.severitySub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.snrGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.snrCell {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-1);
+}
+
+.snrLabel {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.snrValue {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .severityRow,
+  .snrGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -16,6 +16,7 @@ export default function App() {
           <NavLink to="/" end>
             About
           </NavLink>
+          <NavLink to="/findings">Findings</NavLink>
           <NavLink to="/gallery">Results Gallery</NavLink>
           <NavLink to="/runs/new">Run Your Own</NavLink>
         </nav>

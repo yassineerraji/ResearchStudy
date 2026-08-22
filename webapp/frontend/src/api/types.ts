@@ -228,3 +228,17 @@ export interface RunSubmitRequest {
   experiment: Record<string, unknown>
   api_key: string
 }
+
+export interface GridCell {
+  topology: string
+  severity: string
+  directory: string | null
+  manifest: Manifest | null
+  experiment_summary: ExperimentSummary | null
+}
+
+export interface GridResponse {
+  topologies: string[]
+  severities: string[]
+  cells: GridCell[]
+}
