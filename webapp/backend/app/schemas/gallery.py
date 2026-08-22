@@ -44,3 +44,17 @@ class ReplaySliceResponse(BaseModel):
     run_kind: str
     daily_metrics: list[dict[str, Any]]
     decisions: list[dict[str, Any]]
+
+
+class GridCell(BaseModel):
+    topology: str
+    severity: str
+    directory: str | None = None
+    manifest: dict[str, Any] | None = None
+    experiment_summary: dict[str, Any] | None = None
+
+
+class GridResponse(BaseModel):
+    topologies: list[str]
+    severities: list[str]
+    cells: list[GridCell]

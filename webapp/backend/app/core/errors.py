@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from supply_chain_simulator.data_io.loaders import ConfigurationError
 
 from app.services.gallery_reader import ExperimentNotFoundError
+from app.services.presets import PresetNotFoundError
 from app.services.run_registry import RunNotFoundError, RunNotReadyError
 
 
@@ -32,6 +33,10 @@ def register_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=404, content={"detail": f"unknown experiment directory: {exc}"}
         )
+
+    @app.exception_handler(PresetNotFoundError)
+    async def _handle_preset_not_found(request: Request, exc: PresetNotFoundError) -> JSONResponse:
+        return JSONResponse(status_code=404, content={"detail": f"unknown preset: {exc}"})
 
     @app.exception_handler(RunNotFoundError)
     async def _handle_run_not_found(request: Request, exc: RunNotFoundError) -> JSONResponse:

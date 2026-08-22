@@ -18,9 +18,10 @@ from app.schemas.gallery import (
     ExperimentDetailResponse,
     ExperimentListItem,
     ExperimentListResponse,
+    GridResponse,
     ReplaySliceResponse,
 )
-from app.services import gallery_reader
+from app.services import gallery_reader, grid
 
 router = APIRouter(prefix="/gallery", tags=["gallery"])
 
@@ -29,6 +30,13 @@ router = APIRouter(prefix="/gallery", tags=["gallery"])
 async def list_experiments() -> ExperimentListResponse:
     items = await asyncio.to_thread(gallery_reader.list_experiments)
     return ExperimentListResponse(experiments=[ExperimentListItem(**item) for item in items])
+
+
+@router.get("/grid", response_model=GridResponse)
+async def get_grid() -> GridResponse:
+    """Ahead of `/{directory}` on purpose — otherwise `directory="grid"` would match first."""
+    payload = await asyncio.to_thread(grid.build_grid)
+    return GridResponse(**payload)
 
 
 @router.get("/{directory}", response_model=ExperimentDetailResponse)

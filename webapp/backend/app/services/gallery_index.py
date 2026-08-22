@@ -25,6 +25,7 @@ from typing import Any
 from supply_chain_simulator.data_io.writers import DAILY_METRICS_COLUMNS
 
 GroupKey = tuple[int, str, str]
+LlmInteractionKey = tuple[int, str]
 
 _SENTINEL = object()
 
@@ -40,6 +41,7 @@ class ExperimentIndex:
     daily_metrics: dict[GroupKey, ByteRange]
     decision_traces: dict[GroupKey, ByteRange]
     event_tapes: dict[int, ByteRange]
+    llm_interactions: dict[LlmInteractionKey, ByteRange]
 
 
 def _index_jsonl(path: Path, key_fn: Callable[[dict[str, Any]], Any]) -> dict[Any, ByteRange]:
@@ -103,6 +105,18 @@ def _build_index(experiment_dir: Path) -> ExperimentIndex:
         event_tapes=_index_jsonl(
             experiment_dir / "event_tapes.jsonl",
             key_fn=lambda r: int(r["replication"]),
+        ),
+        # llm_interactions.jsonl only ever contains llm_agent entries (the
+        # heuristic never calls out), so its records carry no top-level
+        # `policy` field -- replication/run_kind live one level down, inside
+        # each entry's own `decision_key` (unlike decision_traces.jsonl,
+        # which duplicates those fields at the top level).
+        llm_interactions=_index_jsonl(
+            experiment_dir / "llm_interactions.jsonl",
+            key_fn=lambda r: (
+                int(r["decision_key"]["replication"]),
+                str(r["decision_key"]["run_kind"]),
+            ),
         ),
     )
 

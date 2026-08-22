@@ -35,6 +35,7 @@ async def submit_run(request: RunSubmitRequest) -> RunStatusResponse:
         llm_policy=request.llm_policy,
         experiment=request.experiment,
         api_key=request.api_key,
+        model=request.model,
         max_replications=settings.max_sandbox_replications,
     )
     return RunStatusResponse.from_record(record)

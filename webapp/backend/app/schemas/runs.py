@@ -24,6 +24,16 @@ class RunSubmitRequest(BaseModel):
     llm_policy: dict[str, Any]
     experiment: dict[str, Any]
     api_key: str = Field(min_length=1, description="Never logged, persisted, or echoed back.")
+    model: str | None = Field(
+        default=None,
+        min_length=1,
+        description=(
+            "The visitor's own model name (e.g. 'gpt-4.1'). When supplied, this "
+            "sandbox run uses it instead of whatever model this deployment's own "
+            "environment is otherwise configured with — visitors bring their own "
+            "key and their own model, never billed centrally."
+        ),
+    )
 
 
 class RunLimitsResponse(BaseModel):

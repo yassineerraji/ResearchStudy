@@ -15,8 +15,11 @@ from app.schemas.configs import (
     ConfigSchemaResponse,
     ConfigValidateRequest,
     ConfigValidateResponse,
+    PresetContentResponse,
+    PresetListResponse,
+    PresetSummary,
 )
-from app.services import config_schema, config_validate
+from app.services import config_schema, config_validate, presets
 from app.services.config_schema import ConfigType
 
 router = APIRouter(prefix="/configs", tags=["configs"])
@@ -45,6 +48,17 @@ async def get_config_defaults(config_type: ConfigType) -> ConfigDefaultsResponse
         config_type=config_type.value,
         content=config_schema.get_defaults(config_type),
     )
+
+
+@router.get("/presets", response_model=PresetListResponse)
+async def list_presets() -> PresetListResponse:
+    return PresetListResponse(presets=[PresetSummary(**p) for p in presets.list_presets()])
+
+
+@router.get("/presets/{preset_id}", response_model=PresetContentResponse)
+async def get_preset(preset_id: str) -> PresetContentResponse:
+    content = presets.get_preset_content(preset_id)
+    return PresetContentResponse(**content)
 
 
 @router.post("/validate", response_model=ConfigValidateResponse)

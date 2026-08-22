@@ -38,3 +38,23 @@ class ConfigValidateRequest(BaseModel):
 class ConfigValidateResponse(BaseModel):
     valid: bool
     experiment_id: str
+
+
+class PresetSummary(BaseModel):
+    id: str
+    topology: str
+    severity: str
+
+
+class PresetListResponse(BaseModel):
+    presets: list[PresetSummary]
+
+
+class PresetContentResponse(BaseModel):
+    network: dict[str, Any]
+    scenario: dict[str, Any]
+    base_seed: int | None = None
+    warmup_days: int | None = None
+    horizon_days: int | None = None
+    drain_days: int | None = None
+    terminal_penalty_days: int | None = None

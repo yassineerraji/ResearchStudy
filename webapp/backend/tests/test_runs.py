@@ -135,6 +135,34 @@ def test_missing_deployment_model_env_var_is_rejected(
     assert "LLM_MODEL" in response.json()["detail"]
 
 
+def test_visitor_supplied_model_overrides_missing_deployment_env_var(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A visitor supplying their own `model` should succeed even when this
+    deployment has no LLM_MODEL of its own configured -- the mirror image of
+    `test_missing_deployment_model_env_var_is_rejected` above.
+    """
+    monkeypatch.delenv("LLM_MODEL", raising=False)
+    _configure_launcher(mode="success")
+    bundle = _load_valid_bundle()
+    bundle["model"] = "gpt-4.1-mini"
+
+    response = client.post("/api/v1/runs", json=bundle)
+    assert response.status_code == 201
+    final = _poll_until_terminal(client, response.json()["run_id"])
+    assert final["status"] == "completed"
+
+
+def test_malformed_visitor_supplied_model_is_rejected(client: TestClient) -> None:
+    _configure_launcher(mode="success")
+    bundle = _load_valid_bundle()
+    bundle["model"] = "not a valid model name!!"
+
+    response = client.post("/api/v1/runs", json=bundle)
+    assert response.status_code == 422
+    assert "model" in response.json()["detail"]
+
+
 def test_replay_mode_is_rejected_for_sandbox_runs(client: TestClient) -> None:
     _configure_launcher(mode="success")
     bundle = _load_valid_bundle()

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import shutil
 import uuid
 from collections.abc import Callable
@@ -40,6 +41,13 @@ from app.services.run_registry import (
 )
 
 CommandBuilder = Callable[[Path], list[str]]
+
+# A visitor-supplied model name is never shell-interpreted (it only ever
+# becomes one subprocess environment variable's value via
+# `asyncio.create_subprocess_exec`'s `env=` mapping, not a shell command
+# line), so this is a sanity/typo guard, not an injection defense -- the
+# OpenAI API itself is what actually rejects an unknown model name.
+_MODEL_NAME_PATTERN = re.compile(r"^[A-Za-z0-9._:\-]{1,100}$")
 
 
 def default_command_builder(experiment_config_path: Path) -> list[str]:
@@ -92,6 +100,7 @@ class RunLauncher:
         llm_policy: dict[str, Any],
         experiment: dict[str, Any],
         api_key: str,
+        model: str | None,
         max_replications: int,
     ) -> tuple[Path, Path, int, dict[str, str]]:
         """Synchronous, potentially slow work: validate caps, write files,
@@ -118,19 +127,26 @@ class RunLauncher:
         if not isinstance(api_key_var, str) or not api_key_var:
             raise ConfigurationError("llm_policy.api_key_environment_variable is required")
 
-        # The model name (unlike the API key) is never visitor-supplied — it
-        # comes from this deployment's own environment, per the model_
-        # environment_variable the policy config names. Check it now rather
-        # than after the run is already RUNNING: a deployment missing this
-        # would otherwise fail every single submitted run identically, deep
-        # inside the subprocess, after already occupying a concurrency slot.
+        # The model name is either visitor-supplied (this request's `model`,
+        # set as this run's own `model_var` override below) or, if omitted,
+        # must already be configured on this deployment's own environment.
+        # Check the latter now rather than after the run is already RUNNING:
+        # a deployment missing this would otherwise fail every single
+        # submitted run identically, deep inside the subprocess, after
+        # already occupying a concurrency slot.
         model_var = llm_policy.get("model_environment_variable")
         if not isinstance(model_var, str) or not model_var:
             raise ConfigurationError("llm_policy.model_environment_variable is required")
-        if not os.environ.get(model_var):
+        if model is not None:
+            if not _MODEL_NAME_PATTERN.match(model):
+                raise ConfigurationError(
+                    "model must be a non-empty model name (letters, digits, "
+                    "'.', '_', '-', ':' only)"
+                )
+        elif not os.environ.get(model_var):
             raise ConfigurationError(
-                f"this server has no {model_var!r} environment variable configured — "
-                "a sandbox run cannot select its own model, only its own API key"
+                f"this server has no {model_var!r} environment variable configured, "
+                "and no model was supplied with this request"
             )
 
         run_dir = sandbox_root() / "runs" / run_id
@@ -154,6 +170,8 @@ class RunLauncher:
             raise
 
         env_overrides = {api_key_var: api_key}
+        if model is not None:
+            env_overrides[model_var] = model
         return experiment_path, output_root, replications, env_overrides
 
     async def submit(
@@ -164,6 +182,7 @@ class RunLauncher:
         llm_policy: dict[str, Any],
         experiment: dict[str, Any],
         api_key: str,
+        model: str | None,
         max_replications: int,
     ) -> RunRecord:
         run_id = uuid.uuid4().hex
@@ -176,6 +195,7 @@ class RunLauncher:
             llm_policy,
             experiment,
             api_key,
+            model,
             max_replications,
         )
         record = await self._registry.create(run_id, total_replications=replications)
