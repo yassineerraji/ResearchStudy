@@ -44,6 +44,7 @@ class ReplaySliceResponse(BaseModel):
     run_kind: str
     daily_metrics: list[dict[str, Any]]
     decisions: list[dict[str, Any]]
+    llm_interactions: list[dict[str, Any]] = []
 
 
 class GridCell(BaseModel):

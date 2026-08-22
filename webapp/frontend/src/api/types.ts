@@ -26,12 +26,20 @@ export interface ExperimentSummary {
   standard_deviation_delta?: number
   mean_delta_ci_95_lower?: number
   mean_delta_ci_95_upper?: number
+  p10_delta?: number
+  p90_delta?: number
   llm_win_rate?: number
   heuristic_win_rate?: number
   tie_rate?: number
   best_llm_delta?: number
   worst_llm_delta?: number
   [key: string]: unknown
+}
+
+export interface DecisionRates {
+  abstention_rate?: number
+  fallback_rate?: number
+  invalid_action_rate?: number
 }
 
 export interface ExperimentListItem {
@@ -121,6 +129,7 @@ export interface ExperimentDetail {
     experiment_summary?: ExperimentSummary
     cost_component_means?: Record<string, Record<string, number>>
     service_metric_means?: Record<string, Record<string, number>>
+    decision_rate_means?: Record<string, DecisionRates>
     [key: string]: unknown
   } | null
   replications: ReplicationRow[]
@@ -183,6 +192,40 @@ export interface DecisionTraceEntry {
   [key: string]: unknown
 }
 
+export interface ToolCall {
+  tool_call_id: string
+  name: string
+  arguments: Record<string, unknown>
+  [key: string]: unknown
+}
+
+export interface ToolOutput {
+  tool_call_id: string
+  name: string
+  output: unknown
+  [key: string]: unknown
+}
+
+export interface LlmInteractionDecisionKey {
+  day: number
+  shipment_id: string
+  replication: number
+  run_kind: string
+  [key: string]: unknown
+}
+
+export interface LlmInteraction {
+  decision_key: LlmInteractionDecisionKey
+  attempt_count: number
+  latency_ms: number
+  model: string
+  tool_calls: ToolCall[]
+  tool_outputs: ToolOutput[]
+  submitted_action: Record<string, unknown> | null
+  token_usage: Record<string, number>
+  [key: string]: unknown
+}
+
 export interface ReplaySlice {
   directory: string
   replication: number
@@ -190,6 +233,7 @@ export interface ReplaySlice {
   run_kind: string
   daily_metrics: DailyMetricsRow[]
   decisions: DecisionTraceEntry[]
+  llm_interactions: LlmInteraction[]
 }
 
 export interface ConfigSchemaResponse {

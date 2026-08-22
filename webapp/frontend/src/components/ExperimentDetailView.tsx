@@ -18,6 +18,7 @@ import type { DailyMetricsRow, ExperimentDetail, ReplaySlice } from '../api/type
 import StatTile from './StatTile'
 import NetworkDiagram from './NetworkDiagram'
 import CostBreakdownChart from './CostBreakdownChart'
+import DeltaDistributionChart from './DeltaDistributionChart'
 import ReplayScrubber from './ReplayScrubber'
 import DecisionExplorer from './DecisionExplorer'
 import { formatCurrency, formatPercent } from '../lib/format'
@@ -83,6 +84,12 @@ export default function ExperimentDetailView({
 
   const summary = detail.summary?.experiment_summary
   const costComponentMeans = detail.summary?.cost_component_means ?? {}
+  const llmDisruptedRates = detail.summary?.decision_rate_means?.['llm_agent:DISRUPTED']
+
+  const ciSub =
+    summary?.mean_delta_ci_95_lower !== undefined && summary?.mean_delta_ci_95_upper !== undefined
+      ? `95% CI [${formatCurrency(summary.mean_delta_ci_95_lower)}, ${formatCurrency(summary.mean_delta_ci_95_upper)}]`
+      : undefined
 
   return (
     <article>
@@ -100,11 +107,41 @@ export default function ExperimentDetailView({
       </header>
 
       <div className={styles.statRow}>
-        <StatTile label="Mean Δ (LLM − heuristic)" value={formatCurrency(summary?.mean_delta)} />
+        <StatTile label="Mean Δ (LLM − heuristic)" value={formatCurrency(summary?.mean_delta)} sub={ciSub} />
         <StatTile label="LLM win rate" value={formatPercent(summary?.llm_win_rate)} />
         <StatTile label="Heuristic win rate" value={formatPercent(summary?.heuristic_win_rate)} />
         <StatTile label="Tie rate" value={formatPercent(summary?.tie_rate)} />
       </div>
+
+      {llmDisruptedRates && (
+        <div className={styles.statRow}>
+          <StatTile
+            label="LLM abstention rate"
+            value={formatPercent(llmDisruptedRates.abstention_rate)}
+            sub="disrupted branch"
+          />
+          <StatTile
+            label="LLM fallback rate"
+            value={formatPercent(llmDisruptedRates.fallback_rate)}
+            sub="falls back to heuristic, then WAIT"
+          />
+          <StatTile
+            label="LLM invalid-action rate"
+            value={formatPercent(llmDisruptedRates.invalid_action_rate)}
+            sub="proposals rejected by the validator"
+          />
+        </div>
+      )}
+
+      <section className={styles.section}>
+        <h2>Cost delta by replication</h2>
+        <DeltaDistributionChart
+          replications={detail.replications}
+          meanDelta={summary?.mean_delta}
+          ciLower={summary?.mean_delta_ci_95_lower}
+          ciUpper={summary?.mean_delta_ci_95_upper}
+        />
+      </section>
 
       <section className={styles.section}>
         <h2>Cost breakdown</h2>
@@ -148,7 +185,11 @@ export default function ExperimentDetailView({
             activeShockIds={dayRow?.active_shock_ids ?? []}
           />
           <div>
-            <DecisionExplorer decisions={replaySlice?.decisions ?? []} day={day} />
+            <DecisionExplorer
+              decisions={replaySlice?.decisions ?? []}
+              llmInteractions={replaySlice?.llm_interactions ?? []}
+              day={day}
+            />
           </div>
         </div>
       </section>

@@ -1,0 +1,68 @@
+.chart {
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+}
+
+.ciBand {
+  fill: var(--text-secondary);
+  opacity: 0.12;
+}
+
+.zeroLine {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.meanTick {
+  stroke: var(--text-primary);
+  stroke-width: 2;
+}
+
+.dot {
+  opacity: 0.85;
+  stroke: var(--surface-1);
+  stroke-width: 1;
+}
+
+.axisLabel {
+  fill: var(--text-muted);
+  font-size: 11px;
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legendBand {
+  width: 14px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+  background: var(--text-secondary);
+  opacity: 0.3;
+}

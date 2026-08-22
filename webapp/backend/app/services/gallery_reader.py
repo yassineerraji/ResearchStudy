@@ -198,6 +198,17 @@ def get_replay_slice_at(
         else []
     )
 
+    # llm_interactions.jsonl only ever has entries for the llm_agent policy
+    # (see gallery_index._build_index) -- a heuristic slice always gets an
+    # empty list here, never a lookup miss treated as an error.
+    llm_interactions: list[dict[str, Any]] = []
+    if policy == "llm_agent":
+        interaction_range = index.llm_interactions.get((replication, run_kind))
+        if interaction_range:
+            llm_interactions = _read_jsonl_slice(
+                experiment_dir / "llm_interactions.jsonl", interaction_range
+            )
+
     return {
         "directory": experiment_dir.name,
         "replication": replication,
@@ -205,4 +216,5 @@ def get_replay_slice_at(
         "run_kind": run_kind,
         "daily_metrics": daily_metrics,
         "decisions": decisions,
+        "llm_interactions": llm_interactions,
     }

@@ -75,3 +75,63 @@
   font-size: 0.78rem;
   color: var(--text-muted);
 }
+
+.reasoning {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.reasoningSummary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.toolCallList {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toolCall {
+  border-left: 2px solid var(--gridline);
+  padding-left: 10px;
+}
+
+.toolCallName {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--series-llm);
+}
+
+.toolCallLabel {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.toolCallBlock {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  background: var(--page-plane);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 6px 8px;
+  margin: 4px 0 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tokenUsage {
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}

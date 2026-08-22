@@ -137,6 +137,7 @@ def _build_fake_outputs(outputs_dir: Path) -> None:
     run_metrics_rows = []
     daily_rows = []
     decision_lines = []
+    llm_interaction_lines = []
     for policy, run_kind in branches:
         run_metrics_rows.append(
             {
@@ -172,12 +173,39 @@ def _build_fake_outputs(outputs_dir: Path) -> None:
                 }
             )
         )
+        # llm_interactions.jsonl only ever has entries for the llm_agent
+        # policy (the heuristic never calls out) -- replication/run_kind
+        # live inside `decision_key`, not at the top level, matching the
+        # real file's shape (see app.services.gallery_index).
+        if policy == "llm_agent":
+            llm_interaction_lines.append(
+                json.dumps(
+                    {
+                        "decision_key": {
+                            "replication": 1,
+                            "run_kind": run_kind,
+                            "day": 21,
+                            "shipment_id": f"shipment_{policy}_{run_kind}",
+                        },
+                        "model": "fake-test-model",
+                        "attempt_count": 1,
+                        "latency_ms": 42.0,
+                        "tool_calls": [{"name": "get_shipment_context", "arguments": {}}],
+                        "tool_outputs": [{"result": "fake"}],
+                        "submitted_action": {"action_type": "WAIT"},
+                        "token_usage": {"input_tokens": 10, "output_tokens": 5},
+                    }
+                )
+            )
 
     _write_csv(experiment_dir / "run_metrics.csv", RUN_METRICS_COLUMNS, run_metrics_rows)
     _write_csv(experiment_dir / "daily_metrics.csv", DAILY_METRICS_COLUMNS, daily_rows)
 
     (experiment_dir / "decision_traces.jsonl").write_text(
         "\n".join(decision_lines) + "\n", encoding="utf-8"
+    )
+    (experiment_dir / "llm_interactions.jsonl").write_text(
+        "\n".join(llm_interaction_lines) + "\n", encoding="utf-8"
     )
     (experiment_dir / "event_tapes.jsonl").write_text(
         json.dumps({"replication": 1, "shocks": []}) + "\n", encoding="utf-8"

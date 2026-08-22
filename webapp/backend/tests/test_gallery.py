@@ -88,6 +88,31 @@ def test_replay_slice_for_unknown_group_is_empty_not_error(client: TestClient) -
     assert body["decisions"] == []
 
 
+def test_heuristic_replay_slice_has_no_llm_interactions(client: TestClient) -> None:
+    response = client.get(
+        f"/api/v1/gallery/{FAKE_EXPERIMENT_DIR_NAME}/replay",
+        params={"replication": 1, "policy": "heuristic", "run_kind": "DISRUPTED"},
+    )
+    assert response.status_code == 200
+    assert response.json()["llm_interactions"] == []
+
+
+def test_llm_agent_replay_slice_includes_its_own_interaction_only(client: TestClient) -> None:
+    disrupted = client.get(
+        f"/api/v1/gallery/{FAKE_EXPERIMENT_DIR_NAME}/replay",
+        params={"replication": 1, "policy": "llm_agent", "run_kind": "DISRUPTED"},
+    ).json()
+    undisrupted = client.get(
+        f"/api/v1/gallery/{FAKE_EXPERIMENT_DIR_NAME}/replay",
+        params={"replication": 1, "policy": "llm_agent", "run_kind": "UNDISRUPTED"},
+    ).json()
+
+    assert len(disrupted["llm_interactions"]) == 1
+    assert disrupted["llm_interactions"][0]["decision_key"]["shipment_id"] == "shipment_llm_agent_DISRUPTED"
+    assert len(undisrupted["llm_interactions"]) == 1
+    assert undisrupted["llm_interactions"][0]["decision_key"]["shipment_id"] == "shipment_llm_agent_UNDISRUPTED"
+
+
 def test_indexed_slice_matches_full_file_parse(client: TestClient) -> None:
     """Guards the exact risk flagged during design review: that seeking into
     a byte range returns identical data to fully parsing the file and
