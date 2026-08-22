@@ -25,6 +25,7 @@ The project has run in two stages. **Version 1** tested this on one fixed networ
 - [Generating plots and reports](#generating-plots-and-reports)
 - [A note on AI reproducibility](#a-note-on-ai-reproducibility)
 - [Running the tests](#running-the-tests)
+- [Using the webapp](#using-the-webapp)
 - [Where to learn more](#where-to-learn-more)
 
 ---
@@ -57,7 +58,7 @@ To make the comparison fair, the simulator also runs a second, disruption-free v
 - Handles more than one product, multiple demand destinations, or supplier/procurement choices.
 - Lets either policy create shipments, change demand, or modify the network itself.
 - Models more than one disruption *type* changing mid-run, or lets a policy split a shipment.
-- Uses a database or any real-time/production deployment — this is a research tool, run from the command line, that reads configuration files and writes result files. (A separate, optional `webapp/` — see [Project layout](#project-layout) — adds a read-only browser for past runs; it is not part of the research pipeline itself.)
+- Uses a database or any real-time/production deployment — this is a research tool, run from the command line, that reads configuration files and writes result files. (A separate, optional `webapp/` — see [Using the webapp](#using-the-webapp) — adds a browsable, explorable front end over the same `outputs/` and CLI; it is not part of the research pipeline itself.)
 
 ## What was found
 
@@ -168,7 +169,7 @@ tests/          the automated test suite
 analysis/       plot_results.py — turns a results folder (or several) into charts
 outputs/        results land here, one timestamped folder per experiment run
 reports/        the write-ups: slide decks and the LaTeX/PDF reports (see below)
-webapp/         optional, separate: a read-only browser for past runs (its own README)
+webapp/         optional, separate: a browsable front end over outputs/ and the CLI — see below
 data/           (currently unused placeholder)
 ```
 
@@ -309,6 +310,33 @@ mypy                                      # type checks
 
 None of the automated tests call the real OpenAI API — the AI-related tests use a fully local, scripted stand-in, so the test suite costs nothing and never depends on network access.
 
+## Using the webapp
+
+`webapp/` (FastAPI backend + React/Vite frontend) is a separate, optional front end over the same `outputs/` directories and the same CLI this README describes — it reads and shells out, it never touches simulation logic directly, and it carries none of the scientific-validity obligations the sections above do (see `CLAUDE.md`'s own carve-out for this folder). It has four parts:
+
+- **About** — the research question, the network/shock/action-space model, and the paired-branch fairness mechanism, in plain terms.
+- **Findings** — the audited result itself, computed live from whatever's actually in `outputs/`: the V1 severity-flip story, the full V2 topology x severity grid as a heatmap, and the signal-to-noise check confirming the V2 redesign fixed the flaw its own audit found. Nothing here is a hardcoded number.
+- **Results Gallery** — every completed experiment, browsable as a list or as the same grid heatmap: cost breakdown, network/disruption replay, and every shipment-level decision either policy made — including the LLM agent's actual tool-call reasoning trace, not just its final action.
+- **Run Your Own** — launches a real, live comparison against the OpenAI API. Pick one of the nine real topology x severity presets (the exact validated `configs/` files), tune the disruption's timing/uncertainty and a handful of policy parameters, and submit with your own API key and model name. Capped replications keep runtime and cost bounded; you are billed directly by OpenAI for your own run.
+
+### Launching it
+
+Two servers, in two terminals, from the project root:
+
+```bash
+# terminal 1 — backend
+cd webapp/backend
+source .venv/bin/activate    # webapp/backend has its own venv, separate from the simulator's
+uvicorn app.main:app --port 8000
+
+# terminal 2 — frontend
+cd webapp/frontend
+npm install                  # first time only
+npm run dev
+```
+
+Open the URL Vite prints (normally `http://localhost:5173`) — it proxies `/api` to the backend on port 8000 automatically, so both need to be running. The Findings and Results Gallery pages will immediately show whatever real experiments already exist under `outputs/`; Run Your Own works from the same page without any extra setup, using whichever OpenAI key and model you type in at submission time.
+
 ## Where to learn more
 
 This README covers how to run the tool. For the underlying science:
@@ -321,4 +349,4 @@ This README covers how to run the tool. For the underlying science:
 | [`reports/report_V2.pdf`](reports/report_V2.pdf) | A short, academic-style write-up of V2 alone (research problem, related work, methodology, results, limitations). |
 | [`reports/finalReport.pdf`](reports/finalReport.pdf) | The same style, covering the *whole* study — V1 and V2 together as one two-phase research program. Start here if you only read one document. |
 
-`webapp/` (its own `README.md` under `webapp/frontend/`) is a separate, optional tool for browsing past runs and launching new ones from a UI — it reads `outputs/` and calls the same CLI this README describes, and carries none of the scientific-validity obligations the sections above do.
+For a browsable UI over all of this — the findings, the results gallery, and a live run launcher — see [Using the webapp](#using-the-webapp) above.
