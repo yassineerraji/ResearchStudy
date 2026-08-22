@@ -12,6 +12,9 @@ import type {
   ExperimentDetail,
   ExperimentListResponse,
   GridResponse,
+  Preset,
+  PresetContent,
+  PresetListResponse,
   ReplaySlice,
   RunLimits,
   RunStatus,
@@ -78,6 +81,14 @@ export function getConfigSchema(configType: string): Promise<ConfigSchemaRespons
 
 export function getConfigDefaults(configType: string): Promise<ConfigDefaultsResponse> {
   return getJson<ConfigDefaultsResponse>(`/configs/defaults/${configType}`)
+}
+
+export function listPresets(): Promise<Preset[]> {
+  return getJson<PresetListResponse>('/configs/presets').then((res) => res.presets)
+}
+
+export function getPreset(presetId: string): Promise<PresetContent> {
+  return getJson<PresetContent>(`/configs/presets/${encodeURIComponent(presetId)}`)
 }
 
 export function getRunLimits(): Promise<RunLimits> {

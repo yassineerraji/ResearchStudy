@@ -227,6 +227,27 @@ export interface RunSubmitRequest {
   llm_policy: Record<string, unknown>
   experiment: Record<string, unknown>
   api_key: string
+  model: string
+}
+
+export interface Preset {
+  id: string
+  topology: string
+  severity: string
+}
+
+export interface PresetListResponse {
+  presets: Preset[]
+}
+
+export interface PresetContent {
+  network: NetworkConfigContent
+  scenario: ScenarioConfigContent
+  base_seed: number | null
+  warmup_days: number | null
+  horizon_days: number | null
+  drain_days: number | null
+  terminal_penalty_days: number | null
 }
 
 export interface GridCell {
