@@ -8,6 +8,8 @@ It does this by building a small, realistic (but simplified) supply chain, break
 
 The project has run in two stages. **Version 1** tested this on one fixed network under three disruption severities. **Version 2** extended it to three differently-shaped networks crossed with those same three severities, after auditing V1's results turned up a real methodological gap worth fixing first. Both stages share the exact same simulator, fairness rules, and comparison logic — V2 only changes *what varies between trials*, never *how the comparison itself works*.
 
+**Live demo:** [Web Application](https://research-study-three.vercel.app) — browse the real audited results or launch your own live comparison, no setup required. See [Using the webapp](#using-the-webapp) for details.
+
 ---
 
 ## Contents
@@ -319,7 +321,14 @@ None of the automated tests call the real OpenAI API — the AI-related tests us
 - **Results Gallery** — every completed experiment, browsable as a list or as the same grid heatmap: cost breakdown, network/disruption replay, and every shipment-level decision either policy made — including the LLM agent's actual tool-call reasoning trace, not just its final action.
 - **Run Your Own** — launches a real, live comparison against the OpenAI API. Pick one of the nine real topology x severity presets (the exact validated `configs/` files), tune the disruption's timing/uncertainty and a handful of policy parameters, and submit with your own API key and model name. Capped replications keep runtime and cost bounded; you are billed directly by OpenAI for your own run.
 
-### Launching it
+### Live demo
+
+The webapp is deployed and publicly browsable at **[research-study-three.vercel.app](https://research-study-three.vercel.app)** (frontend on Vercel, backend on Render, both free-tier). It ships with the real, audited nine-cell V2 grid already loaded, so Findings and the Results Gallery show actual results immediately — no setup required. Two things worth knowing about this specific deployment:
+
+- The backend spins down after ~15 minutes idle (Render's free tier); the first request after a quiet period can take 30–60s to wake up.
+- Anything generated through **Run Your Own** on the live demo is not guaranteed to persist across a backend restart or redeploy, since the free tier has no persistent disk — only the committed reference results are permanent.
+
+### Running it locally
 
 Two servers, in two terminals, from the project root:
 
