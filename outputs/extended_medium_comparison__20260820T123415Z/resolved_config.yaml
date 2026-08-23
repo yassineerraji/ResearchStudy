@@ -1,0 +1,358 @@
+experiment:
+  base_seed: 3042
+  counterfactual_mode: POLICY_SPECIFIC
+  drain_days: 30
+  experiment_id: extended_medium_comparison
+  fail_fast: true
+  horizon_days: 60
+  network_config: ../networks/topology_extended.yaml
+  output_root: ../../outputs
+  policy_configs:
+    heuristic: ../policies/heuristic.yaml
+    llm_agent: ../policies/llm_agent.yaml
+  replications: 33
+  scenario_config: ../scenarios/hub_closure_extended.yaml
+  schema_version: 1
+  terminal_penalty_days: 30
+  warmup_days: 20
+  write_daily_metrics: true
+  write_decision_traces: true
+  write_event_tapes: true
+  write_llm_interactions: true
+heuristic_policy:
+  cost_tolerance: 1.0e-09
+  expedite_trigger_lateness_days: 2
+  policy_id: heuristic
+  policy_type: HEURISTIC
+  schema_version: 1
+llm_policy:
+  api_key_environment_variable: OPENAI_API_KEY
+  execution_mode: LIVE
+  fallback_policy: HEURISTIC
+  max_output_tokens: 1000
+  max_retries: 3
+  max_tool_calls: 8
+  model_environment_variable: LLM_MODEL
+  policy_id: llm_agent
+  policy_type: LLM
+  provider: OPENAI
+  replay_trace_path: null
+  request_timeout_seconds: 60
+  schema_version: 1
+  store_provider_response: false
+  temperature: 0.0
+network:
+  action_costs:
+    expedite_premium_per_unit: 10.0
+    reroute_cost_per_unit: 2.0
+  demand_process:
+    destination_node_id: plant_1
+    distribution: TRUNCATED_NORMAL
+    maximum_daily_demand: 55
+    mean_daily_demand: 40.0
+    minimum_daily_demand: 25
+    product_id: component_a
+    standard_deviation: 5.0
+  edges:
+  - base_lead_time_days: 2
+    daily_capacity: 100
+    destination_node_id: port_primary
+    distance_km: 400.0
+    edge_id: supplier_to_primary_port
+    emergency: false
+    mode: ROAD
+    origin_node_id: supplier_1
+    reliability: 0.97
+    unit_transport_cost: 4.0
+  - base_lead_time_days: 4
+    daily_capacity: 60
+    destination_node_id: port_alternative
+    distance_km: 650.0
+    edge_id: supplier_to_alternative_port
+    emergency: false
+    mode: ROAD
+    origin_node_id: supplier_1
+    reliability: 0.96
+    unit_transport_cost: 7.0
+  - base_lead_time_days: 5
+    daily_capacity: 60
+    destination_node_id: port_tertiary
+    distance_km: 800.0
+    edge_id: supplier_to_tertiary_port
+    emergency: false
+    mode: ROAD
+    origin_node_id: supplier_1
+    reliability: 0.95
+    unit_transport_cost: 8.5
+  - base_lead_time_days: 6
+    daily_capacity: 55
+    destination_node_id: port_quaternary
+    distance_km: 950.0
+    edge_id: supplier_to_quaternary_port
+    emergency: false
+    mode: ROAD
+    origin_node_id: supplier_1
+    reliability: 0.94
+    unit_transport_cost: 9.5
+  - base_lead_time_days: 10
+    daily_capacity: 200
+    destination_node_id: hub_1
+    distance_km: 6000.0
+    edge_id: primary_port_to_hub_1
+    emergency: false
+    mode: SEA
+    origin_node_id: port_primary
+    reliability: 0.94
+    unit_transport_cost: 8.0
+  - base_lead_time_days: 12
+    daily_capacity: 60
+    destination_node_id: hub_1
+    distance_km: 6700.0
+    edge_id: alternative_port_to_hub_1
+    emergency: false
+    mode: SEA
+    origin_node_id: port_alternative
+    reliability: 0.93
+    unit_transport_cost: 11.0
+  - base_lead_time_days: 9
+    daily_capacity: 50
+    destination_node_id: hub_2
+    distance_km: 5800.0
+    edge_id: alternative_port_to_hub_2
+    emergency: false
+    mode: SEA
+    origin_node_id: port_alternative
+    reliability: 0.94
+    unit_transport_cost: 10.0
+  - base_lead_time_days: 11
+    daily_capacity: 55
+    destination_node_id: hub_2
+    distance_km: 6200.0
+    edge_id: tertiary_port_to_hub_2
+    emergency: false
+    mode: SEA
+    origin_node_id: port_tertiary
+    reliability: 0.93
+    unit_transport_cost: 10.5
+  - base_lead_time_days: 11
+    daily_capacity: 55
+    destination_node_id: hub_3
+    distance_km: 6400.0
+    edge_id: tertiary_port_to_hub_3
+    emergency: false
+    mode: SEA
+    origin_node_id: port_tertiary
+    reliability: 0.93
+    unit_transport_cost: 10.5
+  - base_lead_time_days: 12
+    daily_capacity: 50
+    destination_node_id: hub_3
+    distance_km: 6600.0
+    edge_id: quaternary_port_to_hub_3
+    emergency: false
+    mode: SEA
+    origin_node_id: port_quaternary
+    reliability: 0.92
+    unit_transport_cost: 11.5
+  - base_lead_time_days: 13
+    daily_capacity: 50
+    destination_node_id: hub_4
+    distance_km: 6900.0
+    edge_id: quaternary_port_to_hub_4
+    emergency: false
+    mode: SEA
+    origin_node_id: port_quaternary
+    reliability: 0.92
+    unit_transport_cost: 12.0
+  - base_lead_time_days: 2
+    daily_capacity: 120
+    destination_node_id: plant_1
+    distance_km: 300.0
+    edge_id: hub_1_to_plant
+    emergency: false
+    mode: ROAD
+    origin_node_id: hub_1
+    reliability: 0.98
+    unit_transport_cost: 3.0
+  - base_lead_time_days: 3
+    daily_capacity: 100
+    destination_node_id: plant_1
+    distance_km: 350.0
+    edge_id: hub_2_to_plant
+    emergency: false
+    mode: ROAD
+    origin_node_id: hub_2
+    reliability: 0.97
+    unit_transport_cost: 3.5
+  - base_lead_time_days: 3
+    daily_capacity: 90
+    destination_node_id: plant_1
+    distance_km: 400.0
+    edge_id: hub_3_to_plant
+    emergency: false
+    mode: ROAD
+    origin_node_id: hub_3
+    reliability: 0.96
+    unit_transport_cost: 4.0
+  - base_lead_time_days: 4
+    daily_capacity: 80
+    destination_node_id: plant_1
+    distance_km: 450.0
+    edge_id: hub_4_to_plant
+    emergency: false
+    mode: ROAD
+    origin_node_id: hub_4
+    reliability: 0.95
+    unit_transport_cost: 4.5
+  - base_lead_time_days: 2
+    daily_capacity: 40
+    destination_node_id: plant_1
+    distance_km: 6200.0
+    edge_id: supplier_to_plant_air
+    emergency: true
+    mode: AIR
+    origin_node_id: supplier_1
+    reliability: 0.99
+    unit_transport_cost: 40.0
+  initial_inventory:
+  - node_id: plant_1
+    product_id: component_a
+    quantity: 200
+  network_id: topology_extended
+  nodes:
+  - latitude: null
+    longitude: null
+    name: Primary Supplier
+    node_id: supplier_1
+    node_type: SUPPLIER
+    processing_capacity: 200
+    source_capacity: 100
+    storage_capacity: 2000
+  - latitude: null
+    longitude: null
+    name: Primary Port
+    node_id: port_primary
+    node_type: PORT
+    processing_capacity: 200
+    source_capacity: 0
+    storage_capacity: 2000
+  - latitude: null
+    longitude: null
+    name: Alternative Port
+    node_id: port_alternative
+    node_type: PORT
+    processing_capacity: 80
+    source_capacity: 0
+    storage_capacity: 1200
+  - latitude: null
+    longitude: null
+    name: Tertiary Port
+    node_id: port_tertiary
+    node_type: PORT
+    processing_capacity: 90
+    source_capacity: 0
+    storage_capacity: 1200
+  - latitude: null
+    longitude: null
+    name: Quaternary Port
+    node_id: port_quaternary
+    node_type: PORT
+    processing_capacity: 70
+    source_capacity: 0
+    storage_capacity: 1000
+  - latitude: null
+    longitude: null
+    name: Import Hub
+    node_id: hub_1
+    node_type: HUB
+    processing_capacity: 200
+    source_capacity: 0
+    storage_capacity: 2000
+  - latitude: null
+    longitude: null
+    name: Secondary Hub
+    node_id: hub_2
+    node_type: HUB
+    processing_capacity: 150
+    source_capacity: 0
+    storage_capacity: 1500
+  - latitude: null
+    longitude: null
+    name: Tertiary Hub
+    node_id: hub_3
+    node_type: HUB
+    processing_capacity: 130
+    source_capacity: 0
+    storage_capacity: 1300
+  - latitude: null
+    longitude: null
+    name: Quaternary Hub
+    node_id: hub_4
+    node_type: HUB
+    processing_capacity: 110
+    source_capacity: 0
+    storage_capacity: 1100
+  - latitude: null
+    longitude: null
+    name: Manufacturing Plant
+    node_id: plant_1
+    node_type: PLANT
+    processing_capacity: 200
+    source_capacity: 0
+    storage_capacity: 1000
+  products:
+  - backlog_cost_per_unit_day: 3.0
+    holding_cost_per_unit_day: 0.1
+    late_penalty_per_unit_day: 1.5
+    name: Component A
+    product_id: component_a
+  replenishment_plan:
+    destination_node_id: plant_1
+    due_offset_days: 15
+    first_release_day: 1
+    initial_route_edge_ids:
+    - supplier_to_primary_port
+    - primary_port_to_hub_1
+    - hub_1_to_plant
+    maximum_shipment_quantity: 55
+    minimum_shipment_quantity: 20
+    origin_node_id: supplier_1
+    product_id: component_a
+    release_every_days: 1
+    shipment_quantity_mean: 40.0
+    shipment_quantity_std: 6.0
+  schema_version: 1
+  units:
+    currency: EUR
+    distance: km
+    quantity: units
+    time: day
+resolved_paths:
+  experiment_config_path: /Users/yassine/Desktop/ResearchStudy/configs/experiments/extended_medium_comparison.yaml
+  heuristic_config_path: /Users/yassine/Desktop/ResearchStudy/configs/policies/heuristic.yaml
+  llm_config_path: /Users/yassine/Desktop/ResearchStudy/configs/policies/llm_agent.yaml
+  network_config_path: /Users/yassine/Desktop/ResearchStudy/configs/networks/topology_extended.yaml
+  output_root: /Users/yassine/Desktop/ResearchStudy/outputs
+  scenario_config_path: /Users/yassine/Desktop/ResearchStudy/configs/scenarios/hub_closure_extended.yaml
+scenario:
+  description: Temporary closure of hub_1, the Extended tier's structurally most-critical
+    node, with uncertain start day, duration, and disclosure delay.
+  scenario_id: hub_1_closure_extended
+  schema_version: 1
+  shocks:
+  - capacity_multiplier: 1.0
+    cost_multiplier: 1.0
+    demand_multiplier: 1.0
+    duration_mean_days: 7.0
+    duration_std_days: 2.0
+    event_group_id: null
+    lead_time_multiplier: 1.0
+    max_information_delay_days: 2
+    maximum_duration_days: 11
+    minimum_duration_days: 4
+    planned_start_day: 25
+    shock_id: close_hub_1
+    shock_type: NODE_CLOSURE
+    start_day_jitter_days: 3
+    target_id: hub_1
+    target_type: NODE

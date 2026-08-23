@@ -15,4 +15,19 @@ htmlcov/
 .env
 outputs/*
 !outputs/.gitkeep
+# Exception: the nine real, audited V2 grid-run directories (Milestone 16,
+# 2026-08-20) are committed on purpose so a fresh deploy of webapp/ (which
+# has no persistent disk on a free host) always ships with real results —
+# see README.md's "Using the webapp" section. Every other outputs/ entry
+# (calibration/smoke runs, older duplicate runs, anything a sandbox visitor
+# generates) stays untracked.
+!outputs/baseline_port_closure_comparison__20260820T130134Z/
+!outputs/light_port_disruption_comparison__20260820T120030Z/
+!outputs/heavy_port_disruption_comparison__20260820T135336Z/
+!outputs/compact_light_comparison__20260820T115857Z/
+!outputs/compact_medium_comparison__20260820T121936Z/
+!outputs/compact_heavy_comparison__20260820T124545Z/
+!outputs/extended_light_comparison__20260820T120110Z/
+!outputs/extended_medium_comparison__20260820T123415Z/
+!outputs/extended_heavy_comparison__20260820T133353Z/
 .DS_Store

@@ -1,0 +1,24 @@
+# Render Blueprint for the webapp backend (free tier).
+#
+# This deploys webapp/backend as a long-running FastAPI process — the shape
+# Render's free web-service tier supports and Vercel's serverless functions
+# don't (real subprocess spawning, no execution-time cap short enough to
+# matter here). See README.md's "Using the webapp" section for context.
+#
+# No persistent disk is configured on purpose: the nine real V2 grid-run
+# directories under outputs/ are committed to this repo (see .gitignore's
+# exception list), so a fresh checkout on every deploy already has the real
+# results baked in — nothing needs to survive a restart to keep Findings and
+# the Results Gallery populated. Anything a visitor generates via "Run Your
+# Own" is expected to be ephemeral on the free tier.
+services:
+  - type: web
+    name: scae-backend
+    runtime: python
+    plan: free
+    branch: main
+    buildCommand: pip install -e . && pip install -e webapp/backend
+    startCommand: cd webapp/backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8

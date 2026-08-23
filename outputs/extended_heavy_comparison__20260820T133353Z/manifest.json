@@ -1,0 +1,25 @@
+{
+  "base_seed": 3042,
+  "created_at_utc": "20260820T133353Z",
+  "dependency_versions": {
+    "PyYAML": "6.0.3",
+    "networkx": "3.6.1",
+    "openai": "2.51.0",
+    "pydantic": "2.13.4"
+  },
+  "experiment_config_sha256": "9bab0ab83d0495f419e17c22f90af3fde50a3b9d5fc0ccf962398ed36b2dadaa",
+  "experiment_id": "extended_heavy_comparison",
+  "git_commit": "5f42926fb115459ff176a66b450c8ae1e958f993",
+  "git_dirty": false,
+  "heuristic_config_sha256": "bcc7caa27bb6d628cff24d71b724a1d16484ec3fce2ab1bfbf7bfcd348e056ef",
+  "llm_config_sha256": "44e3487205d0861aa4b89530f7d003b752c1af4fa17e43cfefa1e60f7ee5634d",
+  "llm_execution_mode": "LIVE",
+  "llm_model": "gpt-5.4-mini",
+  "llm_prompt_sha256": "b14fe4bb809ba019422e6efc41576015b3ac68ee868156d0171edca91e9928fc",
+  "network_config_sha256": "1b98c7fc5ab00bebbef5066f62e402bb10d477ef3a1555188bc6b8d3f614bf63",
+  "platform": "macOS-15.7.7-arm64-arm-64bit-Mach-O",
+  "project_version": "0.1.0",
+  "python_version": "3.13.5",
+  "replications": 33,
+  "scenario_config_sha256": "13a9cb1bb56671d17ddf8961676d8c5db66b152683ca9aa2d4f499fbfd1369dc"
+}
