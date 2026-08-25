@@ -1,10 +1,9 @@
 # Evaluating Agentic AI for Supply-Chain Disruption Mitigation
 
-A research simulator that answers one question:
 
 > **When a supply chain gets disrupted, does a bounded AI agent make cheaper, better decisions than a simple hand-written rulebook — and does that answer depend on how the network is built or how bad the disruption is?**
 
-It does this by building a small, realistic (but simplified) supply chain, breaking it in a controlled and repeatable way, and letting two different decision-makers — a classical rule-based policy and a real AI agent — respond to the exact same disruption under the exact same conditions, so their results can be compared fairly.
+We try to answer this by building a small and realistic (but simplified) supply chain, breaking it in a controlled and repeatable way, and letting two different decision-makers — a classical rule-based policy and a real AI agent — respond to the exact same disruption under the same conditions, so their results can be compared fairly.
 
 The project has run in two stages. **Version 1** tested this on one fixed network under three disruption severities. **Version 2** extended it to three differently-shaped networks crossed with those same three severities, after auditing V1's results turned up a real methodological gap worth fixing first. Both stages share the exact same simulator, fairness rules, and comparison logic — V2 only changes *what varies between trials*, never *how the comparison itself works*.
 
@@ -124,7 +123,7 @@ flowchart TD
 
 ### 4. How one decision gets made
 
-Whenever a shipment does need a decision, both policies go through the exact same gate — nothing either one proposes is trusted blindly:
+Whenever a shipment needs a decision, both policies' proposed actions are checked by the same validator before anything happens. Neither one is trusted to act unsupervised.
 
 ```mermaid
 flowchart TD
@@ -172,7 +171,6 @@ analysis/       plot_results.py — turns a results folder (or several) into cha
 outputs/        results land here, one timestamped folder per experiment run
 reports/        the write-ups: slide decks and the LaTeX/PDF reports (see below)
 webapp/         optional, separate: a browsable front end over outputs/ and the CLI — see below
-data/           (currently unused placeholder)
 ```
 
 You will only ever need to touch files under `configs/` and the `.env` file described below — everything under `src/` is the program itself. `analysis/`, `reports/`, and `webapp/` are all downstream of the simulator's output files, not part of the simulation logic.
@@ -211,8 +209,6 @@ OPENAI_API_KEY=sk-...your-real-key...
 LLM_MODEL=gpt-5.4-mini
 ```
 
-`.env` is listed in `.gitignore` and will never be committed. Never paste a real key into any file under `configs/`.
-
 ## Configuring a run
 
 An experiment is assembled from five small YAML files (YAML is a plain, readable text format for configuration):
@@ -220,12 +216,11 @@ An experiment is assembled from five small YAML files (YAML is a plain, readable
 | File | What it defines |
 |---|---|
 | `configs/networks/*.yaml` | The map: locations, transport lanes, their capacity/cost/speed/reliability, starting inventory, how demand behaves, and the recurring shipment schedule. Three shapes exist: `baseline_network.yaml` (V1's original, 5 nodes), `topology_compact.yaml` (4 nodes, no detour route), and `topology_extended.yaml` (10 nodes, several detour routes). |
-| `configs/scenarios/*.yaml` | The disruption: what breaks, roughly when it starts and ends, and roughly when the policies are told about it — as of V2, these are ranges a real value is drawn from per trial, not fixed values. |
+| `configs/scenarios/*.yaml` | The disruption: what breaks, roughly when it starts and ends, and roughly when the policies are told about it. |
 | `configs/policies/heuristic.yaml` | The two tuning numbers for the classical rulebook. |
 | `configs/policies/llm_agent.yaml` | Which AI model to use, how many questions it may ask per decision, timeouts, retries, and what happens if it fails to answer. |
 | `configs/experiments/*.yaml` | Ties everything together: which network/scenario/policies to use, how many days to simulate, how many replications to run, the random seed, and which result files to write. |
 
-The original V1 experiment is `configs/experiments/baseline_comparison.yaml`. V2 adds nine more — every combination of the three network shapes above with three disruption severities (e.g. `compact_light_comparison.yaml`, `extended_heavy_comparison.yaml`) — each one just a config file, run the same way as the original. You generally shouldn't need to write a new one from scratch: copy the closest existing file and adjust what you need (for example, a smaller `replications` number for a quick, cheap trial run — most experiment files also have a matching `*_calibration.yaml`/`*_smoke.yaml` sibling pre-set to run only a handful of replications for exactly this purpose).
 
 ## Validating a configuration
 
@@ -243,7 +238,7 @@ This loads and cross-checks every referenced file and prints either a confirmati
 python -m supply_chain_simulator.cli run --config configs/experiments/baseline_comparison.yaml
 ```
 
-**This makes real calls to the OpenAI API and spends real money whenever the configured policy is set to `execution_mode: LIVE`.** In practice this has cost roughly $0.05–0.06 per replication at full length; a 100-replication file therefore costs a few dollars and can take a couple of hours, and the largest of the nine V2 grid files (the biggest network under the worst disruption) took the longest of all nine in the real run that produced this project's results. If you just want to see the tool work end to end cheaply first, use one of the `*_calibration.yaml` files (3 replications) or copy an experiment file and reduce `replications` yourself.
+**This makes real calls to the OpenAI (or any OpenAI compatible) API and spends real money whenever the configured policy is set to `execution_mode: LIVE`.** In practice this has cost roughly $0.05–0.06 per replication at full length; a 100-replication file therefore costs a few dollars and can take a couple of hours, and the largest of the nine V2 grid files (the biggest network under the worst disruption) took the longest of all nine in the real run that produced this project's results. 
 
 Progress prints to the screen as each replication finishes, along with which policy "won" that round. At the end, a summary (average cost difference, how often each policy won, etc.) is printed and also saved to disk.
 
@@ -255,8 +250,8 @@ Each run creates one new folder under `outputs/`, named `<experiment_id>__<times
 |---|---|
 | `manifest.json` | A fingerprint of the run: versions, git commit, configuration hashes, which AI model was used. Never contains the API key. |
 | `resolved_config.yaml` | The complete, final configuration actually used (with any secret values redacted). |
-| `run.log` | Detailed execution log for troubleshooting. |
-| `event_tapes.jsonl` | The exact random "future" (demand, delays, shipment releases, the realized disruption) generated for each replication. |
+| `run.log` | Detailed execution log. |
+| `event_tapes.jsonl` | The exact random state or "future" (demand, delays, shipment releases, the realized disruption) generated for each replication. |
 | `run_metrics.csv` | One row per policy/scenario branch per replication: total cost and its breakdown, service-quality numbers, decision statistics. |
 | `daily_metrics.csv` | The same, broken down day by day. |
 | `decision_traces.jsonl` | Every single decision either policy was asked to make, what it proposed, whether it was valid, and what actually happened. |
@@ -310,11 +305,11 @@ ruff check src tests                      # style/lint checks
 mypy                                      # type checks
 ```
 
-None of the automated tests call the real OpenAI API — the AI-related tests use a fully local, scripted stand-in, so the test suite costs nothing and never depends on network access.
+None of the automated tests call the real OpenAI API; the AI-related tests use a fully local, scripted stand-in, so the test suite costs nothing and never depends on network access.
 
 ## Using the webapp
 
-`webapp/` (FastAPI backend + React/Vite frontend) is a separate, optional front end over the same `outputs/` directories and the same CLI this README describes — it reads and shells out, it never touches simulation logic directly, and it carries none of the scientific-validity obligations the sections above do (see `CLAUDE.md`'s own carve-out for this folder). It has four parts:
+`webapp/` (FastAPI backend + React/Vite frontend) is a separate, optional front end over the same `outputs/` directories and the same CLI this README describes — it reads and shells out but never touches simulation logic directly. It has four parts:
 
 - **About** — the research question, the network/shock/action-space model, and the paired-branch fairness mechanism, in plain terms.
 - **Findings** — the audited result itself, computed live from whatever's actually in `outputs/`: the V1 severity-flip story, the full V2 topology x severity grid as a heatmap, and the signal-to-noise check confirming the V2 redesign fixed the flaw its own audit found. Nothing here is a hardcoded number.
@@ -352,10 +347,8 @@ This README covers how to run the tool. For the underlying science:
 
 | Document | What it's for |
 |---|---|
-| [`CLAUDE.md`](CLAUDE.md) | The full build contract: every design decision, invariant, and file responsibility for both V1 (frozen) and V2, at the level of detail needed to safely extend the system. The authoritative reference. |
 | [`reports/v1_slide_deck.html`](reports/v1_slide_deck.html) | A narrated walkthrough of V1: why it's built the way it is, and its original results. Open directly in a browser. |
 | [`reports/v2_slide_deck.html`](reports/v2_slide_deck.html) | A narrated walkthrough of V2: the audit that motivated it, what changed, and the full nine-cell grid results. Open directly in a browser. |
-| [`reports/report_V2.pdf`](reports/report_V2.pdf) | A short, academic-style write-up of V2 alone (research problem, related work, methodology, results, limitations). |
 | [`reports/finalReport.pdf`](reports/finalReport.pdf) | The same style, covering the *whole* study — V1 and V2 together as one two-phase research program. Start here if you only read one document. |
 
 For a browsable UI over all of this — the findings, the results gallery, and a live run launcher — see [Using the webapp](#using-the-webapp) above.
