@@ -59,13 +59,26 @@ def _read_json(path: Path) -> dict[str, Any]:
     return data
 
 
+def _experiment_search_roots(root: Path) -> list[Path]:
+    """Where real experiment directories live: flat under `outputs/` (local
+    calibration/smoke runs), or one level down in `outputs/V1/` or
+    `outputs/V2/` (the committed real V1/V2 runs — see `.gitignore`). Each
+    experiment's own basename is still unique and used as its public
+    `directory` identifier, so callers never need to know which of these it
+    came from.
+    """
+    return [root, root / "V1", root / "V2"]
+
+
 def _list_experiment_dirs() -> list[Path]:
     root = outputs_dir()
     if not root.exists():
         return []
     return [
         entry
-        for entry in root.iterdir()
+        for base in _experiment_search_roots(root)
+        if base.is_dir()
+        for entry in base.iterdir()
         if entry.is_dir()
         and not entry.name.startswith((".", "_"))
         and (entry / "manifest.json").is_file()
@@ -76,10 +89,11 @@ def resolve_experiment_dir(directory: str) -> Path:
     if not directory or "/" in directory or "\\" in directory or directory in {".", ".."}:
         raise ExperimentNotFoundError(directory)
     root = outputs_dir().resolve()
-    candidate = (root / directory).resolve()
-    if not candidate.is_relative_to(root) or not (candidate / "manifest.json").is_file():
-        raise ExperimentNotFoundError(directory)
-    return candidate
+    for base in _experiment_search_roots(root):
+        candidate = (base / directory).resolve()
+        if candidate.is_relative_to(root) and (candidate / "manifest.json").is_file():
+            return candidate
+    raise ExperimentNotFoundError(directory)
 
 
 def list_experiments() -> list[dict[str, Any]]:

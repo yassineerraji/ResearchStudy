@@ -28,6 +28,7 @@ The project has run in two stages. **Version 1** tested this on one fixed networ
 - [Running the tests](#running-the-tests)
 - [Using the webapp](#using-the-webapp)
 - [Where to learn more](#where-to-learn-more)
+- [Acknowledgments](#acknowledgments)
 
 ---
 

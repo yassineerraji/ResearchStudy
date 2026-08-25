@@ -1,0 +1,157 @@
+{
+  "configuration_hashes": {
+    "experiment_config_sha256": "c7e3dad82331d9fb5eaa7d62f2e0493f4073e8745d50fe7374a127beca2e6a55",
+    "heuristic_config_sha256": "bcc7caa27bb6d628cff24d71b724a1d16484ec3fce2ab1bfbf7bfcd348e056ef",
+    "llm_config_sha256": "44e3487205d0861aa4b89530f7d003b752c1af4fa17e43cfefa1e60f7ee5634d",
+    "llm_prompt_sha256": "b14fe4bb809ba019422e6efc41576015b3ac68ee868156d0171edca91e9928fc",
+    "network_config_sha256": "6a402ec978a664c3a4dea8d86dc9a68b8fb1231bb8e40ad151085719c8e78a7f",
+    "scenario_config_sha256": "5bee65795e50f77f3549352c0a7ba1ad191d4a47c0736a3a5454b1517ddc5505"
+  },
+  "cost_component_means": {
+    "heuristic:DISRUPTED": {
+      "backlog_cost": 77192.58,
+      "expedite_cost": 0.0,
+      "holding_cost": 1321.12,
+      "late_cost": 14.4,
+      "reroute_cost": 0.0,
+      "terminal_cost": 32997.6,
+      "total_cost": 137626.9,
+      "transport_cost": 26101.2
+    },
+    "heuristic:UNDISRUPTED": {
+      "backlog_cost": 77080.98,
+      "expedite_cost": 0.0,
+      "holding_cost": 1321.12,
+      "late_cost": 10.8,
+      "reroute_cost": 0.0,
+      "terminal_cost": 32997.6,
+      "total_cost": 137511.7,
+      "transport_cost": 26101.2
+    },
+    "llm_agent:DISRUPTED": {
+      "backlog_cost": 77025.78,
+      "expedite_cost": 44.0,
+      "holding_cost": 1321.12,
+      "late_cost": 14.4,
+      "reroute_cost": 1009.6,
+      "terminal_cost": 32997.6,
+      "total_cost": 138623.7,
+      "transport_cost": 26211.2
+    },
+    "llm_agent:UNDISRUPTED": {
+      "backlog_cost": 77080.98,
+      "expedite_cost": 0.0,
+      "holding_cost": 1321.12,
+      "late_cost": 10.8,
+      "reroute_cost": 4.8,
+      "terminal_cost": 32997.6,
+      "total_cost": 137516.5,
+      "transport_cost": 26101.2
+    }
+  },
+  "decision_rate_means": {
+    "heuristic:DISRUPTED": {
+      "abstention_rate": 0.0,
+      "fallback_rate": 0.0,
+      "invalid_action_rate": 0.0
+    },
+    "heuristic:UNDISRUPTED": {
+      "abstention_rate": 0.0,
+      "fallback_rate": 0.0,
+      "invalid_action_rate": 0.0
+    },
+    "llm_agent:DISRUPTED": {
+      "abstention_rate": 0.0,
+      "fallback_rate": 0.0,
+      "invalid_action_rate": 0.0
+    },
+    "llm_agent:UNDISRUPTED": {
+      "abstention_rate": 0.0,
+      "fallback_rate": 0.0,
+      "invalid_action_rate": 0.0
+    }
+  },
+  "experiment_summary": {
+    "best_llm_delta": 240.0,
+    "heuristic_win_rate": 1.0,
+    "llm_win_rate": 0.0,
+    "mean_delta": 992.0,
+    "mean_delta_ci_95_lower": 966.540568,
+    "mean_delta_ci_95_upper": 1017.459432,
+    "mean_heuristic_tcd": 115.2,
+    "mean_llm_tcd": 1107.2,
+    "median_delta": 980.0,
+    "median_heuristic_tcd": 0.0,
+    "median_llm_tcd": 1040.0,
+    "p10_delta": 876.0,
+    "p90_delta": 1120.0,
+    "replication_count": 100,
+    "standard_deviation_delta": 129.895063,
+    "tie_rate": 0.0,
+    "worst_llm_delta": 1280.0
+  },
+  "service_metric_means": {
+    "heuristic:DISRUPTED": {
+      "average_lateness_days_weighted": 0.2,
+      "backlog_unit_days": 25730.86,
+      "decision_count": 14.86,
+      "ending_backlog_units": 366.64,
+      "expedite_count": 0.0,
+      "expedited_units": 0.0,
+      "final_fulfilment_rate": 0.771047,
+      "late_delivered_units": 9.6,
+      "late_delivery_rate": 0.004441,
+      "mean_decision_latency_ms": 0.008072,
+      "reroute_count": 0.0,
+      "same_day_fill_rate": 0.0
+    },
+    "heuristic:UNDISRUPTED": {
+      "average_lateness_days_weighted": 0.16,
+      "backlog_unit_days": 25693.66,
+      "decision_count": 0.09,
+      "ending_backlog_units": 366.64,
+      "expedite_count": 0.0,
+      "expedited_units": 0.0,
+      "final_fulfilment_rate": 0.771047,
+      "late_delivered_units": 7.2,
+      "late_delivery_rate": 0.00333,
+      "mean_decision_latency_ms": 0.001468,
+      "reroute_count": 0.0,
+      "same_day_fill_rate": 0.0
+    },
+    "llm_agent:DISRUPTED": {
+      "average_lateness_days_weighted": 0.2,
+      "backlog_unit_days": 25675.26,
+      "decision_count": 14.77,
+      "ending_backlog_units": 366.64,
+      "expedite_count": 0.11,
+      "expedited_units": 4.4,
+      "final_fulfilment_rate": 0.771047,
+      "late_delivered_units": 9.6,
+      "late_delivery_rate": 0.004441,
+      "mean_decision_latency_ms": 2447.163807,
+      "reroute_count": 12.62,
+      "same_day_fill_rate": 0.0
+    },
+    "llm_agent:UNDISRUPTED": {
+      "average_lateness_days_weighted": 0.16,
+      "backlog_unit_days": 25693.66,
+      "decision_count": 0.09,
+      "ending_backlog_units": 366.64,
+      "expedite_count": 0.0,
+      "expedited_units": 0.0,
+      "final_fulfilment_rate": 0.771047,
+      "late_delivered_units": 7.2,
+      "late_delivery_rate": 0.00333,
+      "mean_decision_latency_ms": 165.360284,
+      "reroute_count": 0.06,
+      "same_day_fill_rate": 0.0
+    }
+  },
+  "unresolved_run_counts": {
+    "heuristic:DISRUPTED": 100,
+    "heuristic:UNDISRUPTED": 100,
+    "llm_agent:DISRUPTED": 100,
+    "llm_agent:UNDISRUPTED": 100
+  }
+}
