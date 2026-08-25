@@ -49,11 +49,11 @@ class RunIdentity:
 
 @dataclass(frozen=True, slots=True)
 class DecisionTraceEntry:
-    """One shipment's fully-resolved decision, for CLAUDE.md section 27.5's
-    decision_traces.jsonl. `decision_key` there is the tuple (experiment_id,
-    scenario_id, replication, run_kind, day, shipment_id, observation_hash)
-    per section 23.1; this entry carries `run_identity` and `day` instead of
-    a pre-joined key so data_io/writers.py can format it however it needs.
+    """One shipment's fully-resolved decision, for decision_traces.jsonl.
+    `decision_key` there is the tuple (experiment_id, scenario_id,
+    replication, run_kind, day, shipment_id, observation_hash); this entry
+    carries `run_identity` and `day` instead of a pre-joined key so
+    data_io/writers.py can format it however it needs.
     """
 
     run_identity: RunIdentity
@@ -99,9 +99,8 @@ class SimulationEngine:
     """Runs a SimulationState through a fixed range of days.
 
     `policy`, `fallback_policy`, and `mean_daily_demand` are only required
-    when `decision_enabled=True`; warm-up-style runs
-    (`decision_enabled=False`, matching CLAUDE.md section 13.2) never build
-    an observation or consult a policy, so they may be omitted.
+    when `decision_enabled=True`; warm-up-style runs (`decision_enabled=False`)
+    never build an observation or consult a policy, so they may be omitted.
     """
 
     def run(
@@ -307,14 +306,14 @@ class SimulationEngine:
         decision_trace_sink: list[DecisionTraceEntry] | None,
         llm_interaction_sink: list[LLMInteractionResult] | None,
     ) -> None:
-        """CLAUDE.md section 14 steps 7-10: build each triggered shipment's
-        observation from this same pre-action state, consult the policy,
-        resolve fallback if it abstains or proposes something invalid, and
-        collect the resulting executed actions for transition.py to apply.
+        """Build each triggered shipment's observation from this same
+        pre-action state, consult the policy, resolve fallback if it
+        abstains or proposes something invalid, and collect the resulting
+        executed actions for transition.py to apply.
 
         `known_shocks` must already be restricted to shocks in
-        `state.known_shock_ids` (CLAUDE.md section 20) — the caller in
-        `_process_day` does this filtering, since this is the one path that
+        `state.known_shock_ids` — the caller in `_process_day` does this
+        filtering, since this is the one path that
         feeds shock information to policy-facing code. `apply_shock_operational_state`
         and `_assert_active_shocks_match_day` intentionally still use the
         event tape's full, unfiltered shock list: physical effects apply

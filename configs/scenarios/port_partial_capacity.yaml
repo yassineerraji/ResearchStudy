@@ -5,7 +5,7 @@
 # (Heavy) to give the paired comparison a realistic spread of disruption
 # severity, not just one fixed scenario. As with every V2 severity scenario,
 # the exact start day, duration, and disclosure delay are uncertain --
-# sampled once per replication (V2 CLAUDE.md §V2.3.3), not fixed.
+# sampled once per replication, not fixed.
 
 schema_version: 1
 scenario_id: primary_port_partial_capacity

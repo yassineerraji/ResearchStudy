@@ -580,8 +580,8 @@ def build_initial_state(
 ) -> SimulationState:
     """Builds the day-0 state: normal network, configured inventory, nothing else.
 
-    Matches CLAUDE.md section 13.1 exactly: the base network is normal, all
-    operational states use defaults, backlog is zero, there are no shipments,
+    The base network is normal, all operational states use defaults,
+    backlog is zero, there are no shipments,
     costs and service counters are zero, and no shock is active or known.
     """
     inventory: dict[str, dict[str, int]] = {

@@ -158,8 +158,8 @@ def _bypass_action(
     DecisionAction's constructor already refuses the exact shapes that
     INVALID_ACTION_SCHEMA and ROUTE_REQUIRED exist to catch, so those codes
     can only be reached by a validator that does not simply trust its caller
-    (CLAUDE.md's "never silently repair an invalid LLM route"). This bypass
-    is how the tests reach those defense-in-depth branches.
+    (this project's validator never silently repairs an invalid LLM route).
+    This bypass is how the tests reach those defense-in-depth branches.
     """
     action = object.__new__(DecisionAction)
     object.__setattr__(action, "shipment_id", shipment_id)

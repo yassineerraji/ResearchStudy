@@ -1,6 +1,6 @@
 # Combines the Compact topology, the "Light" partial-capacity-reduction
 # scenario, and two policies into one paired experiment -- the Compact x
-# Light cell of the topology x severity grid (V2 CLAUDE.md §V2.8.1).
+# Light cell of the topology x severity grid.
 # Deliberately reuses the same base_seed across all three Compact-topology
 # severities (compact_medium_comparison.yaml, compact_heavy_comparison.yaml):
 # since demand and ordinary transport delays are derived only from

@@ -1,4 +1,4 @@
-# The Extended topology tier (V2 CLAUDE.md §V2.3.1): 4 ports and 4 hubs
+# The Extended topology tier: 4 ports and 4 hubs
 # forming a genuine overlapping mesh -- 7 non-emergency supplier-to-plant
 # paths (plus the emergency air lane), all <= 3 edges. supplier_1 and
 # plant_1 are identical to Standard/Compact by construction; every edge

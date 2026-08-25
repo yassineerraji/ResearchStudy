@@ -1,5 +1,5 @@
 # A small, cheap, real-API variant of baseline_comparison.yaml for Milestone
-# 9's "small two-replication live experiment" step (CLAUDE.md section 32).
+# 9's "small two-replication live experiment" step.
 # Same network, scenario, and policies as the real baseline; only
 # horizon_days, drain_days, and replications are reduced, so it is fast and
 # inexpensive to run against a real OpenAI key while still exercising the

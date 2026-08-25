@@ -56,9 +56,9 @@ def _rate(numerator: int, denominator: int) -> float:
 def _days_to_clear_backlog_after_shock(
     result: SimulationResult, shock_end_day: int | None
 ) -> int | None:
-    """CLAUDE.md section 11.19: days from the first day after shock end to the
-    first day backlog is zero, counting the first day after shock end itself
-    as 0 days elapsed. `None` if there was no shock, or backlog never clears.
+    """Days from the first day after shock end to the first day backlog is
+    zero, counting the first day after shock end itself as 0 days elapsed.
+    `None` if there was no shock, or backlog never clears.
     """
     if shock_end_day is None:
         return None
@@ -161,8 +161,8 @@ def compute_replication_comparison(
     llm_undisrupted_cost: float,
     llm_disrupted_cost: float,
 ) -> ReplicationComparison:
-    """CLAUDE.md section 5.8: TCD is each policy's disrupted-minus-undisrupted
-    cost; delta is the LLM's TCD minus the heuristic's.
+    """TCD is each policy's disrupted-minus-undisrupted cost; delta is the
+    LLM's TCD minus the heuristic's.
     """
     heuristic_tcd = heuristic_disrupted_cost - heuristic_undisrupted_cost
     llm_tcd = llm_disrupted_cost - llm_undisrupted_cost
@@ -203,8 +203,8 @@ class ExperimentSummary:
 
 
 def _percentile(sorted_values: Sequence[float], percentile: float) -> float:
-    """Deterministic linear interpolation over already-sorted values (CLAUDE.md
-    section 11.19), matching the common "inclusive" percentile method.
+    """Deterministic linear interpolation over already-sorted values,
+    matching the common "inclusive" percentile method.
     """
     n = len(sorted_values)
     if n == 1:

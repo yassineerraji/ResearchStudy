@@ -8,7 +8,7 @@
 # that survive hub_1's closure (verified during topology design), making it
 # the natural route to model as congested by diverted traffic. The two
 # shocks represent one correlated regional event and share one start-day
-# jitter draw via event_group_id (V2 CLAUDE.md §V2.3.4).
+# jitter draw via event_group_id.
 
 schema_version: 1
 scenario_id: hub_1_extended_closure_with_congestion

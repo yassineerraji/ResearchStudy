@@ -55,8 +55,8 @@ route. You may only propose one action for the shipment you were given.
 
 
 def compute_prompt_hash() -> str:
-    """CLAUDE.md section 23.6: a SHA-256 of the versioned system prompt, written
-    to the manifest so any prompt change is visible as a policy change.
+    """A SHA-256 of the versioned system prompt, written to the manifest so
+    any prompt change is visible as a policy change.
     """
     return hashlib.sha256(SYSTEM_PROMPT.encode("utf-8")).hexdigest()
 
@@ -197,7 +197,7 @@ def make_tool_executor(
     """Builds the local, deterministic, read-only tool dispatch for one
     observation. `submit_action` is deliberately absent: the LLMClient
     handles it directly as the loop's terminal tool and never routes it
-    through this executor (CLAUDE.md section 11.15/11.16).
+    through this executor.
     """
     executors: dict[str, Callable[[dict[str, object]], dict[str, object]]] = {
         "get_shipment_context": lambda _args: shipment_context_to_dict(observation.shipment),

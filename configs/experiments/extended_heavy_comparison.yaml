@@ -1,6 +1,6 @@
 # Combines the Extended topology, Extended's own "Heavy" scenario, and two
 # policies into one paired experiment -- the Extended x Heavy cell of the
-# topology x severity grid (V2 CLAUDE.md §V2.8.1). Uses
+# topology x severity grid. Uses
 # hub_extended_closure_with_congestion.yaml: an extended closure of hub_1
 # plus congestion on alternative_port_to_hub_2, one of the routes that
 # actually survives hub_1's closure and absorbs the diverted traffic.

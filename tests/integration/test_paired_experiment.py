@@ -331,7 +331,7 @@ class TestExperimentRunnerPairedInvariants:
     def test_identical_policies_produce_identical_disrupted_branches(
         self, tmp_path: Path
     ) -> None:
-        """CLAUDE.md section 30.10: policies see equal observations for equal
+        """Fairness invariant: policies see equal observations for equal
         states. Two separate HeuristicPolicy instances (same deterministic
         rule) standing in for both slots means their disrupted branches --
         which the tiny scenario's edge closure actually triggers a decision
@@ -657,10 +657,10 @@ def _topology_resolved_config(
 
 
 class TestFullPairedRunPerTopologyTier:
-    """V2 §V2.9: a full paired run on each topology tier completes and
-    produces valid TCD/delta values -- proving no topology-specific code
-    path is missing. WaitFallbackPolicy stands in for the LLM agent (no live
-    API call, matching V1 §9's "no test ever calls a real API").
+    """A full paired run on each topology tier completes and produces valid
+    TCD/delta values -- proving no topology-specific code path is missing.
+    WaitFallbackPolicy stands in for the LLM agent (no live API call --
+    no test in this project ever calls a real API).
     """
 
     @pytest.mark.parametrize(

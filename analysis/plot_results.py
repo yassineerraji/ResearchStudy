@@ -23,8 +23,8 @@ _HEURISTIC_COLOR = "#4c72b0"
 _LLM_COLOR = "#dd8452"
 _TIE_COLOR = "#8c8c8c"
 
-# Grid axes (CLAUDE.md V2.3.1, V2.8.1). Fixed, deterministic order -- never
-# derived from dict/insertion order, per this project's own V1 SS3 convention.
+# Grid axes: topology tiers and severity tiers. Fixed, deterministic order --
+# never derived from dict/insertion order.
 TOPOLOGY_ORDER = ("Compact", "Standard", "Extended")
 SEVERITY_ORDER = ("Light", "Medium", "Heavy")
 
@@ -897,7 +897,7 @@ def plot_10_tcd_tail_risk(data: ExperimentData, output_dir: Path) -> Path:
     return out_path
 
 
-# --- grid plots (V2 topology x severity, CLAUDE.md V2.8.1) -----------------
+# --- grid plots (V2 topology x severity grid) -----------------
 
 
 def _grid_stats(
@@ -955,7 +955,7 @@ def _mark_missing_cell(ax: plt.Axes, row: int, col: int) -> None:
 
 
 def plot_08_disruption_robustness_heatmap(grid: GridCells, output_dir: Path) -> Path:
-    """The one plot Milestone 15 (CLAUDE.md V2.10) exists to produce: a
+    """The disruption-robustness heatmap: a
     topology x severity heatmap of mean delta, color = magnitude/direction,
     hatch overlay = "95% CI includes zero" (not distinguishable from a tie
     at this sample size -- material at 33, and expected on 3-replication
@@ -1079,8 +1079,8 @@ def plot_11_win_rate_heatmap(grid: GridCells, output_dir: Path) -> Path:
 def plot_12_topology_severity_interaction(grid: GridCells, output_dir: Path) -> Path:
     """Classic interaction plot: parallel lines mean topology and severity
     act independently on the LLM's advantage; converging/crossing lines mean
-    they interact -- exactly the question V2's mission delta (CLAUDE.md
-    V2.1) asks ("how does that advantage vary with network complexity and
+    they interact -- exactly the question V2's mission delta asks
+    ("how does that advantage vary with network complexity and
     disruption character").
     """
     fig, ax = plt.subplots(figsize=(8, 5.5))
@@ -1140,7 +1140,7 @@ def plot_13_grid_win_loss_tie(grid: GridCells, output_dir: Path) -> Path:
     """Frequency companion to the magnitude-focused heatmap/interaction
     plots: one stacked bar per present cell, fixed topology-then-severity
     order (never sorted by value -- this project never relies on an
-    incidental ordering, V1 SS3).
+    incidental ordering).
     """
     rows = []
     for topology in TOPOLOGY_ORDER:
@@ -1191,15 +1191,14 @@ def plot_13_grid_win_loss_tie(grid: GridCells, output_dir: Path) -> Path:
 def plot_14_signal_to_noise_by_cell(
     grid: GridCells, output_dir: Path, v1_reference: list[ExperimentData]
 ) -> Path:
-    """Direct check on the thing V2 exists to fix (CLAUDE.md "Why V2
-    exists"): V1's audit found the mean policy gap was 7.6x-10.2x larger
-    than replication-to-replication noise in every profile, which is why
-    every one of 100 replications agreed on the winner. This plots the same
-    ratio -- |mean delta| / stdev(delta) -- for every V2 grid cell, computed
-    the same way, next to that same ratio computed fresh from whichever real
-    V1 100-replication runs are passed as --v1-reference (never hardcoded
-    from the prose in CLAUDE.md, so this figure can't silently drift out of
-    sync with the actual historical data).
+    """Direct check on the thing V2 exists to fix: V1's audit found the mean
+    policy gap was 7.6x-10.2x larger than replication-to-replication noise
+    in every profile, which is why every one of 100 replications agreed on
+    the winner. This plots the same ratio -- |mean delta| / stdev(delta) --
+    for every V2 grid cell, computed the same way, next to that same ratio
+    computed fresh from whichever real V1 100-replication runs are passed as
+    --v1-reference (never hardcoded, so this figure can't silently drift out
+    of sync with the actual historical data).
     """
 
     def _ratio(data: ExperimentData) -> float | None:
@@ -1276,12 +1275,13 @@ def plot_14_signal_to_noise_by_cell(
 
 def plot_15_randomness_realization_qa(grid: GridCells, output_dir: Path) -> Path:
     """Not a results plot -- a trust plot. Confirms the new randomness V2
-    exists to add (CLAUDE.md V2.3.3/V2.3.5) is actually producing spread,
-    not silently degenerating back to V1's fixed values. One row per present
-    cell; for the three timing columns, one point is drawn per replication's
-    lexicographically-first shock_id (the same "ascending shock_id" tie-break
-    convention V2.3.4 already uses), so a multi-shock scenario's distinct
-    shock templates are never pooled into one misleading distribution.
+    adds is actually producing spread, not silently degenerating back to
+    V1's fixed values. One row per present cell; for the three timing
+    columns, one point is drawn per replication's lexicographically-first
+    shock_id (the same "ascending shock_id" tie-break convention this
+    project's shock realization already uses), so a multi-shock scenario's
+    distinct shock templates are never pooled into one misleading
+    distribution.
     """
     cells = [
         (topology, severity, grid[(topology, severity)])
@@ -1384,7 +1384,7 @@ def main(argv: list[str] | None = None) -> int:
         default=[],
         nargs=3,
         metavar=("TOPOLOGY", "SEVERITY", "PATH"),
-        help="One topology x severity grid cell (CLAUDE.md V2.8.1), e.g. "
+        help="One topology x severity grid cell, e.g. "
         "--cell Compact Light outputs/compact_light_comparison__.... "
         "Repeatable, 0-9 times; the grid need not be complete. Each cell "
         "also gets the normal per-scenario plot set, and >=1 --cell "

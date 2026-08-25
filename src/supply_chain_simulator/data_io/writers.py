@@ -107,10 +107,9 @@ class ExperimentWriter:
     """Owns one experiment's output directory and every file inside it.
 
     Incremental files (event tapes, run/daily metrics, decision traces, LLM
-    interactions, replications) are opened once and flushed after every
-    write, matching CLAUDE.md section 11.21's "flush after each replication".
-    Complete files (manifest, resolved config, summary) are written once,
-    atomically, via a temp-file-then-rename.
+    interactions, replications) are opened once and flushed after each
+    replication. Complete files (manifest, resolved config, summary) are
+    written once, atomically, via a temp-file-then-rename.
     """
 
     def __init__(self, output_dir: Path) -> None:
@@ -357,8 +356,8 @@ class ExperimentWriter:
         self, interactions: Sequence[dict[str, object]]
     ) -> None:
         """Only ever called with real entries once policies/llm_agent.py exists
-        (Milestone 8) and actually produces LLM interactions; until then the
-        file is created and stays empty, per CLAUDE.md section 27.6.
+        and actually produces LLM interactions; until then the file is
+        created and stays empty.
         """
         for interaction in interactions:
             self._llm_interaction_file.write(
@@ -384,7 +383,7 @@ class ExperimentWriter:
 
 
 def _fmt(value: float) -> str:
-    """CLAUDE.md section 6.2: CSV and JSON cost outputs use six decimal places."""
+    """CSV and JSON cost outputs use six decimal places."""
     return f"{value:.6f}"
 
 

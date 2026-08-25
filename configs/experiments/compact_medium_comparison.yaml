@@ -1,6 +1,6 @@
 # Combines the Compact topology, the "Medium" primary-port-closure scenario,
 # and two policies into one paired experiment -- the Compact x Medium cell
-# of the topology x severity grid (V2 CLAUDE.md §V2.8.1). Reuses the same
+# of the topology x severity grid. Reuses the same
 # base_seed as compact_light_comparison.yaml and compact_heavy_comparison.yaml
 # (see that file's header for why), and the same network as both.
 

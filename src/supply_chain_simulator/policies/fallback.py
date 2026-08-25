@@ -74,7 +74,7 @@ def resolve_action(
     state: SimulationState,
     fallback_policy: Policy,
 ) -> FallbackResolution:
-    """Runs CLAUDE.md section 11.14's fallback chain for one shipment's decision."""
+    """Runs the validate-then-fallback-then-terminal-WAIT chain for one shipment's decision."""
     proposal_validation = validate_action(proposed_action, observation, state)
     needs_fallback = (
         proposed_action.action_type is ActionType.ABSTAIN

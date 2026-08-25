@@ -1,4 +1,4 @@
-# The Compact topology tier (V2 CLAUDE.md §V2.3.1): Standard minus the
+# The Compact topology tier: Standard minus the
 # alternate port and its two edges. A primary-port disruption leaves REROUTE
 # structurally impossible here — only WAIT and EXPEDITE remain. Every shared
 # field is copied unchanged from baseline_network.yaml so any behavioral

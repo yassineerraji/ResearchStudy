@@ -76,10 +76,10 @@ def build_observation(
 ) -> DecisionObservation:
     """Builds one shipment's observation from the current pre-action state.
 
-    `known_shocks` must already be restricted to shocks the policy is allowed
-    to know about on this day (CLAUDE.md section 20); this function does not
-    itself filter by `state.known_shock_ids`, matching the convention already
-    used by `simulation.routing.estimate_current_plan` and
+    `known_shocks` must already be restricted to shocks the policy is
+    allowed to know about on this day; this function does not itself filter
+    by `state.known_shock_ids`, matching the convention already used by
+    `simulation.routing.estimate_current_plan` and
     `simulation.transition.identify_shipments_requiring_decision`.
     """
     shipment = state.shipments[shipment_id]
@@ -199,9 +199,9 @@ def _build_current_plan(
     try:
         return estimate_current_plan(state, shipment, known_shocks)
     except RoutingError:
-        # The remaining route is empty or discontinuous (CLAUDE.md section 19
-        # trigger 5): report it as a non-dispatchable, un-costed plan rather
-        # than letting route estimation fail the whole observation.
+        # The remaining route is empty or discontinuous: report it as a
+        # non-dispatchable, un-costed plan rather than letting route
+        # estimation fail the whole observation.
         remaining_edge_ids = shipment.planned_route_edge_ids[shipment.next_edge_index :]
         return RouteEstimate(
             route_id="__".join(remaining_edge_ids),
@@ -237,8 +237,8 @@ def observation_to_canonical_dict(
 
     `compute_observation_hash`, below, feeds this through
     `json.dumps(sort_keys=True)` and SHA-256 to compute a decision_key's
-    observation_hash (CLAUDE.md section 23.1); building the canonical shape
-    here keeps it next to the dataclasses it mirrors.
+    observation_hash; building the canonical shape here keeps it next to
+    the dataclasses it mirrors.
     """
     return {
         "observation_id": observation.observation_id,
@@ -257,7 +257,7 @@ def observation_to_canonical_dict(
 
 
 def compute_observation_hash(observation: DecisionObservation) -> str:
-    """SHA-256 of the observation's canonical JSON, per CLAUDE.md section 23.1."""
+    """SHA-256 of the observation's canonical JSON."""
     canonical_json = json.dumps(
         observation_to_canonical_dict(observation),
         sort_keys=True,

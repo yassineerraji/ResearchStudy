@@ -1,6 +1,6 @@
 # Combines the Extended topology, the "Medium" hub_1-closure scenario, and
 # two policies into one paired experiment -- the Extended x Medium cell of
-# the topology x severity grid (V2 CLAUDE.md §V2.8.1). Reuses the same
+# the topology x severity grid. Reuses the same
 # base_seed as extended_light_comparison.yaml and
 # extended_heavy_comparison.yaml (see that file's header for why), and the
 # same network as both.

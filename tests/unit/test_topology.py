@@ -150,8 +150,8 @@ class TestExtendedTopology:
 
     def test_port_primary_is_no_longer_the_critical_node(self) -> None:
         """The exact finding that drove retargeting this tier's severity
-        scenario to hub_1 (CLAUDE.md V2.3.1): in this mesh, port_primary is
-        one of the least central nodes -- closing it barely dents route
+        scenario to hub_1: in this mesh, port_primary is one of the least
+        central nodes -- closing it barely dents route
         availability (6 of 7 non-emergency paths survive at the graph level),
         unlike Compact/Standard where it's the only chokepoint. This checks
         the raw graph fact, not the policy-visible candidate count, since

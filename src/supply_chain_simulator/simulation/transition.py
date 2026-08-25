@@ -72,8 +72,8 @@ def apply_shock_operational_state(state: SimulationState, shocks: tuple[Shock, .
     """Rebuilds node/edge operational state from the immutable base every day.
 
     Availability combines by logical AND (any active closure wins) and
-    multipliers combine by multiplication, per CLAUDE.md section 18.3. Never
-    incrementally mutates a stale multiplier from a previous day.
+    multipliers combine by multiplication. Never incrementally mutates a
+    stale multiplier from a previous day.
     """
     for node_id in state.node_operational_state:
         state.node_operational_state[node_id] = OperationalNodeState()
@@ -176,8 +176,8 @@ def process_due_arrivals(state: SimulationState) -> None:
 def release_shipments(state: SimulationState, release_events: tuple[ShipmentReleaseEvent, ...]) -> int:
     """Attempts every entry already in state.pending_releases (oldest-scheduled
     first, i.e. ascending shipment_id) before today's newly scheduled events
-    (also ascending shipment_id), per CLAUDE.md V2 §V2.3.7. A release whose
-    source is unavailable, over its effective source_capacity, or would
+    (also ascending shipment_id). A release whose source is unavailable,
+    over its effective source_capacity, or would
     overflow storage no longer raises: it is appended to
     state.pending_releases and retried on a later day. Returns the total
     quantity actually released this call -- the engine accumulates this into
@@ -282,7 +282,7 @@ def fulfil_backlog_and_demand(
 def identify_shipments_requiring_decision(
     state: SimulationState, known_shocks: tuple[Shock, ...]
 ) -> tuple[str, ...]:
-    """Applies the exact triggers from CLAUDE.md section 19, in deterministic order."""
+    """Applies the exact decision triggers, in deterministic order."""
     triggered = [
         shipment_id
         for shipment_id, shipment in state.shipments.items()

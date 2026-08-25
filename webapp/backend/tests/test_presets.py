@@ -26,7 +26,7 @@ def test_list_presets_returns_all_nine_grid_cells(client: TestClient) -> None:
 
 
 def test_extended_medium_preset_targets_hub_1_not_port_primary(client: TestClient) -> None:
-    """Regression guard for the specific finding CLAUDE.md's V2.3.1 documents:
+    """Regression guard for the specific finding that motivated this preset:
     Extended's severity scenarios target `hub_1` (its real computed
     chokepoint), not `port_primary` like Compact/Standard do.
     """

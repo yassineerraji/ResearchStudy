@@ -281,7 +281,7 @@ class TestMakeToolExecutor:
 
     def test_submit_action_is_not_dispatched_locally(self) -> None:
         """submit_action is handled by the LLMClient itself, never routed
-        through the local executor (CLAUDE.md section 11.15/11.16)."""
+        through the local executor."""
         observation = _observation()
         executor = make_tool_executor(observation)
         result = executor("submit_action", {"shipment_id": "s1"})

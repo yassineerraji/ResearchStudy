@@ -67,7 +67,7 @@ To make the comparison fair, the simulator also runs a second, disruption-free v
 
 **V2** was built specifically to fix that, and then run for real too (498 trials across all nine network-shape × severity combinations, live). The result: the original network and the smaller one reproduce V1's pattern (AI agent loses on a mild disruption, wins big on a severe one) — but **the larger, more redundant network flips it entirely**: the rulebook wins there, and wins by *more* as the disruption gets worse, the opposite direction. One combination (the small network under a moderate disruption) even produced a genuine mixed result — the AI agent won about three-quarters of the time rather than every time or never — the first non-unanimous outcome either version has produced.
 
-**In short: whether the AI agent helps depends on both how bad the disruption is and how much flexibility the network has to route around it.** It is not a universal win or a universal loss. The full numbers, caveats, and a discussion of what this does and doesn't prove are in [`reports/finalReport.pdf`](reports/finalReport.pdf) — see [Where to learn more](#where-to-learn-more).
+**In short: whether the AI agent helps depends on both how bad the disruption is and how much flexibility the network has to route around it.** It is not a universal win or a universal loss. The full numbers, caveats, and a discussion of what this does and doesn't prove are in [`reports/Final_Report.pdf`](reports/Final_Report.pdf) — see [Where to learn more](#where-to-learn-more).
 
 ## How it works
 
@@ -288,7 +288,7 @@ python analysis/plot_results.py \
 
 This additionally writes a heatmap, a win-rate heatmap, a topology-vs-severity interaction chart, and two diagnostic charts confirming the randomness is behaving as configured, into `<output-dir>/grid/`.
 
-The write-ups built from this project's own real results — two narrated slide decks and two LaTeX/PDF reports (a V2-only one, and a combined V1+V2 one) — already exist under [`reports/`](reports/); see [Where to learn more](#where-to-learn-more).
+The write-ups built from this project's own real results — two narrated slide decks and one combined V1+V2 LaTeX/PDF report — already exist under [`reports/`](reports/); see [Where to learn more](#where-to-learn-more).
 
 ## A note on AI reproducibility
 
@@ -349,6 +349,6 @@ This README covers how to run the tool. For the underlying science:
 |---|---|
 | [`reports/v1_slide_deck.html`](reports/v1_slide_deck.html) | A narrated walkthrough of V1: why it's built the way it is, and its original results. Open directly in a browser. |
 | [`reports/v2_slide_deck.html`](reports/v2_slide_deck.html) | A narrated walkthrough of V2: the audit that motivated it, what changed, and the full nine-cell grid results. Open directly in a browser. |
-| [`reports/finalReport.pdf`](reports/finalReport.pdf) | The same style, covering the *whole* study — V1 and V2 together as one two-phase research program. Start here if you only read one document. |
+| [`reports/Final_Report.pdf`](reports/Final_Report.pdf) | The same style, covering the *whole* study — V1 and V2 together as one two-phase research program. Start here if you only read one document. |
 
 For a browsable UI over all of this — the findings, the results gallery, and a live run launcher — see [Using the webapp](#using-the-webapp) above.

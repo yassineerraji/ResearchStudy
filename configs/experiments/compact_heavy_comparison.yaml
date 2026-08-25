@@ -1,6 +1,6 @@
 # Combines the Compact topology, Compact's own "Heavy" scenario, and two
 # policies into one paired experiment -- the Compact x Heavy cell of the
-# topology x severity grid (V2 CLAUDE.md §V2.8.1). Uses
+# topology x severity grid. Uses
 # port_extended_closure_compact.yaml, not port_extended_closure.yaml:
 # Standard's Heavy scenario references an edge (alternative_port_to_hub)
 # that doesn't exist in Compact's 4-edge network, so it fails config

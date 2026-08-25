@@ -1,9 +1,9 @@
 """Groups completed experiments into the V2 topology x severity grid.
 
 Inside `app.services`, this module answers "which real completed run
-corresponds to each of the 3x3 (topology, severity) grid cells CLAUDE.md's
-V2.8.1 defines" by matching each completed experiment's `experiment_id`
-against a small static naming table -- the grid is a fixed, known set of
+corresponds to each of the 3x3 (topology, severity) grid cells" by matching
+each completed experiment's `experiment_id` against a small static naming
+table -- the grid is a fixed, known set of
 nine cells, not something inferred generically from arbitrary output
 directories. It reuses `app.services.gallery_reader.list_experiments` for
 the underlying file reads and does no I/O of its own. Calibration/smoke runs
@@ -28,8 +28,8 @@ class GridCellKey(NamedTuple):
 
 
 # The nine real (topology, severity) combinations, named exactly as
-# CLAUDE.md's V2.6/V2.8.1 name their experiment config files (and therefore
-# their `experiment_id`s).
+# this project's experiment config files are (and therefore their
+# `experiment_id`s).
 _EXPERIMENT_ID_TO_CELL: dict[str, GridCellKey] = {
     "baseline_port_closure_comparison": GridCellKey("Standard", "Medium"),
     "light_port_disruption_comparison": GridCellKey("Standard", "Light"),

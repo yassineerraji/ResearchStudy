@@ -1,8 +1,8 @@
 """Named topology x severity presets for the sandbox 'Run Your Own' builder.
 
 Inside `app.services`, this module lets a visitor pick one of the nine real
-(topology, severity) grid cells (CLAUDE.md's V2.8.1) and load the exact
-`configs/` files already validated and run for that cell -- a preset picker
+(topology, severity) grid cells and load the exact `configs/` files already
+validated and run for that cell -- a preset picker
 only, per Yassine's explicit scope decision, never a free-form shock editor.
 It reuses `app.services.config_schema`'s plain YAML-reading approach rather
 than inventing a second one. It shares `app.services.grid`'s topology/
@@ -29,8 +29,8 @@ class _PresetFiles(NamedTuple):
     experiment: str
 
 
-# Exactly the nine files CLAUDE.md's V2.6/V2.8.1 name for the real grid --
-# each `experiment` file is only read for its administrative fields
+# Exactly the nine files this project's config layout names for the real
+# grid -- each `experiment` file is only read for its administrative fields
 # (base_seed, warmup/horizon/drain/terminal_penalty days), never for its
 # `replications` (the sandbox's own cap governs that, see run_launcher.py).
 _PRESETS: dict[str, _PresetFiles] = {

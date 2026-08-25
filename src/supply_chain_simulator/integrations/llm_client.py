@@ -27,9 +27,9 @@ _RETRY_BACKOFF_SECONDS: tuple[float, ...] = (1.0, 2.0, 4.0)
 class LLMIntegrationError(Exception):
     """Raised when the configured LLM provider cannot be built or reached.
 
-    CLAUDE.md section 4.6/11.16: a live provider failure must fail the whole
-    experiment rather than being silently swapped for a fallback policy, so
-    this is allowed to propagate all the way to cli.py's top-level mapping.
+    A live provider failure must fail the whole experiment rather than
+    being silently swapped for a fallback policy, so this is allowed to
+    propagate all the way to cli.py's top-level mapping.
     """
 
 
@@ -41,7 +41,7 @@ class ReplayTraceError(LLMIntegrationError):
 
 @dataclass(frozen=True, slots=True)
 class DecisionKey:
-    """The seven fields CLAUDE.md section 23.1 defines as one LLM decision's identity."""
+    """The seven fields defining one LLM decision's identity."""
 
     experiment_id: str
     scenario_id: str
@@ -110,9 +110,9 @@ class ToolOutputRecord:
 @dataclass(frozen=True, slots=True)
 class LLMInteractionResult:
     """The complete, secret-free audit trail of one decision's tool loop,
-    matching every field CLAUDE.md section 27.6's llm_interactions.jsonl
-    needs except `prompt_hash`, which only policies/llm_agent.py (the owner
-    of the prompt constant, per section 23.6) can supply.
+    matching every field llm_interactions.jsonl needs except `prompt_hash`,
+    which only policies/llm_agent.py (the owner of the prompt constant) can
+    supply.
     """
 
     decision_key: DecisionKey
@@ -151,9 +151,10 @@ def decision_key_to_dict(key: DecisionKey) -> dict[str, object]:
 
 
 def interaction_to_dict(result: LLMInteractionResult, prompt_hash: str) -> dict[str, object]:
-    """Converts one interaction into CLAUDE.md section 27.6's exact record
-    shape, so `data_io/writers.py:append_llm_interactions` can write it
-    without knowing anything about `LLMInteractionResult` itself.
+    """Converts one interaction into the exact record shape
+    `llm_interactions.jsonl` requires, so
+    `data_io/writers.py:append_llm_interactions` can write it without
+    knowing anything about `LLMInteractionResult` itself.
     """
     return {
         "decision_key": decision_key_to_dict(result.decision_key),
@@ -199,11 +200,11 @@ def _tool_spec_to_param(tool: ToolSpec) -> dict[str, object]:
 
 
 class OpenAIResponsesClient:
-    """Live `LLMClient` backed by the OpenAI Responses API (CLAUDE.md section 11.16).
+    """Live `LLMClient` backed by the OpenAI Responses API.
 
     `client` is accepted as an injectable dependency purely for testability
-    (CLAUDE.md section 30.13 forbids a real API call from the test suite);
-    production code should only ever pass `api_key` and let this constructor
+    (no test in this project makes a real API call); production code
+    should only ever pass `api_key` and let this constructor
     build the real `openai.OpenAI` client.
     """
 
@@ -332,8 +333,8 @@ class OpenAIResponsesClient:
     def _call_with_retries(
         self, make_request: Callable[[], _ResponseT], max_retries: int
     ) -> tuple[_ResponseT, int]:
-        """CLAUDE.md section 11.16: retries transient errors 3x with 1s/2s/4s
-        backoff; never retries invalid-request/auth-style errors.
+        """Retries transient errors 3x with 1s/2s/4s backoff; never retries
+        invalid-request/auth-style errors.
         """
         attempt = 0
         while True:
@@ -362,10 +363,10 @@ def _accumulate_usage(totals: dict[str, int], usage: object) -> None:
 
 
 class ReplayLLMClient:
-    """Reproduces previously-recorded LLM decisions with no network call
-    (CLAUDE.md sections 11.16 and 23.3): loads an entire `llm_interactions.jsonl`
-    at construction time, indexes it by `DecisionKey`, and returns the exact
-    recorded interaction for a matching request.
+    """Reproduces previously-recorded LLM decisions with no network call:
+    loads an entire `llm_interactions.jsonl` at construction time, indexes
+    it by `DecisionKey`, and returns the exact recorded interaction for a
+    matching request.
     """
 
     def __init__(self, trace_path: Path) -> None:
@@ -430,7 +431,7 @@ class ReplayLLMClient:
 
 class FakeLLMClient:
     """Test-only `LLMClient`: returns a pre-programmed result, no network
-    call and no OpenAI dependency involved (CLAUDE.md section 11.16).
+    call and no OpenAI dependency involved.
     """
 
     def __init__(

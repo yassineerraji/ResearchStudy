@@ -24,7 +24,7 @@ def validate_action(
     observation: DecisionObservation,
     state: SimulationState,
 ) -> ValidationResult:
-    """Runs CLAUDE.md section 11.11's twelve checks, in order, and stops at
+    """Runs the twelve validation checks, in order, and stops at
     the first failure.
 
     A DELIVERED shipment is reported as SHIPMENT_ALREADY_DELIVERED rather than

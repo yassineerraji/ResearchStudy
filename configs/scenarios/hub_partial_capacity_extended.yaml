@@ -1,7 +1,7 @@
 # Defines the Extended topology tier's "Light" disruption profile. Mirrors
 # port_partial_capacity.yaml exactly (same distribution, same magnitude),
-# retargeted to hub_1 -- this tier's actual structurally critical node (V2
-# CLAUDE.md §V2.3.1's betweenness-centrality finding), the same way
+# retargeted to hub_1 -- this tier's actual structurally critical node (per
+# this tier's own betweenness-centrality finding), the same way
 # hub_closure_extended.yaml is the Medium-severity counterpart to
 # port_closure.yaml.
 

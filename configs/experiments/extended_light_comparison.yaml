@@ -1,6 +1,6 @@
 # Combines the Extended topology, the "Light" hub-capacity-reduction
 # scenario, and two policies into one paired experiment -- the Extended x
-# Light cell of the topology x severity grid (V2 CLAUDE.md §V2.8.1). Uses
+# Light cell of the topology x severity grid. Uses
 # hub_partial_capacity_extended.yaml, not port_partial_capacity.yaml:
 # betweenness centrality on Extended's mesh shows port_primary is one of
 # its least structurally critical nodes, so a port_primary-targeted

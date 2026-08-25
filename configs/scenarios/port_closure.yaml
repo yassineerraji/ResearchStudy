@@ -1,7 +1,7 @@
 # Defines the Medium-severity designed disruption. The primary port closes
 # for roughly a week, but neither the exact start day, the exact duration,
 # nor the exact moment either policy learns about it is known in advance --
-# all three are sampled once per replication (V2 CLAUDE.md §V2.3.3), so the
+# all three are sampled once per replication, so the
 # same handful of shipments do not deterministically hit the same disruption
 # the same way on every single run.
 

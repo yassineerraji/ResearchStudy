@@ -208,8 +208,8 @@ def estimate_current_plan(
     `known_shocks` has ended (a deliberately conservative simplification:
     a block partway down a multi-edge route is treated the same as a block
     on the very next edge). If no known shock explains the block, arrival
-    and cost are None per CLAUDE.md section 21.1, and the plan is reported
-    as not currently dispatchable.
+    and cost are None, and the plan is reported as not currently
+    dispatchable.
     """
     if shipment.current_node_id is None:
         raise RoutingError("estimate_current_plan requires a shipment that is AT_NODE")

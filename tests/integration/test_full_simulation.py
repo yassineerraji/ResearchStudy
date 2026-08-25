@@ -386,11 +386,11 @@ class TestObservationsOnlyRevealKnownShocks:
     Builds a one-day event tape by hand: a shock targets hub_to_plant (on
     s001's route) but its information_day is day 5, while s001's due_day is
     set to its own release day so a decision is triggered on day 1 purely by
-    the lateness trigger (CLAUDE.md section 19 trigger 3) -- independent of
-    the shock. Before the fix, engine.py handed every shock in the event
-    tape to build_observation regardless of state.known_shock_ids, so the
-    day-1 observation would have leaked the shock's existence four days
-    before policies are supposed to know about it (CLAUDE.md section 20).
+    the lateness trigger, independent of the shock. Before the fix,
+    engine.py handed every shock in the event tape to build_observation
+    regardless of state.known_shock_ids, so the day-1 observation would have
+    leaked the shock's existence four days before policies are supposed to
+    know about it.
     """
 
     def _run(self) -> list[DecisionTraceEntry]:

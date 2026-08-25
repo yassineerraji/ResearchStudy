@@ -54,10 +54,10 @@ class ExperimentResult:
 
 
 def _snapshot_after_warmup(state: SimulationState) -> SimulationState:
-    """CLAUDE.md section 11.18 step 7: preserve inventory, backlog, shipment
-    positions, and due dates; reset cost and service counters to zero. The
-    warm-up used the undisrupted tape, so operational state, active/known
-    shocks, and daily capacity usage are already at their normal defaults.
+    """Preserve inventory, backlog, shipment positions, and due dates; reset
+    cost and service counters to zero. The warm-up used the undisrupted
+    tape, so operational state, active/known shocks, and daily capacity
+    usage are already at their normal defaults.
     """
     state.costs = CostCounters()
     state.service = ServiceCounters()
@@ -79,9 +79,8 @@ class ExperimentRunner:
     here, since building a real LLM policy from that config requires
     policies/llm_agent.py (Milestone 8). The CLI is responsible for
     resolving configuration into concrete Policy objects; tests may inject a
-    fake policy in the comparison slot, matching CLAUDE.md's own Milestone 7
-    acceptance test ("a multi-replication heuristic-versus-fake-policy
-    experiment").
+    fake policy in the comparison slot ("a multi-replication
+    heuristic-versus-fake-policy experiment").
     """
 
     def __init__(
