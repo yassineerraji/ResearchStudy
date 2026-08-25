@@ -1,17 +1,4 @@
-"""Unit tests for the three V2 topology tiers (CLAUDE.md V2 §V2.3.1).
-
-Inside tests/unit, this file checks that Compact, Standard, and Extended
-each load into the exact node/edge connectivity the contract specifies, that
-every tier's replenishment plan route is continuous from origin to
-destination, and -- the structural property the whole topology axis exists
-to test -- that closing each tier's most-critical node leaves Compact with
-no non-emergency reroute at all, Standard with exactly one, and Extended
-(closing hub_1, not port_primary -- betweenness centrality on this tier's
-mesh shows hub_1 is the actual critical node, see
-configs/scenarios/hub_closure_extended.yaml) with several structurally
-distinct ones. It does not run a simulation; it only checks static graph
-structure via simulation/routing.py's candidate-route enumeration.
-"""
+"""Unit tests for the three V2 topology tiers: connectivity, route continuity, and the reroute-availability property each tier exists to demonstrate."""
 
 from __future__ import annotations
 

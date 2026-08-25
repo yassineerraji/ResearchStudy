@@ -1,15 +1,4 @@
-"""Unit tests for experiments/event_tape.py: reproducibility and pairing.
-
-Inside tests/unit, this file checks that stream-seed derivation, demand
-generation, edge-delay generation, shipment-release generation, and shock
-template realization (V2 §V2.3.3/§V2.3.4) are all deterministic given a
-fixed seed, that a built EventTape reflects the tiny fixture's scenario
-correctly (shock realization, known-shock-id timing, day coverage through
-the drain period), and that the undisrupted tape produced from a disrupted
-one differs only in its shocks. It does not test how these events are later
-applied to a SimulationState, since the engine does not exist yet at this
-stage of the build.
-"""
+"""Unit tests for event_tape.py: deterministic stream derivation, event generation, shock realization, and that the undisrupted tape differs from the disrupted one only in its shocks."""
 
 from __future__ import annotations
 

@@ -1,13 +1,4 @@
-"""Unit tests for the domain package's structural invariants.
-
-Inside tests/unit, this file checks that the frozen and mutable dataclasses
-in domain/models.py, domain/state.py, domain/actions.py, and domain/events.py
-reject the malformed constructions CLAUDE.md explicitly forbids (negative
-capacities, out-of-range reliability, inconsistent shipment status fields,
-mismatched action/route requirements, and so on). It does not test
-configuration loading (see test_loaders.py) or any simulation behavior, since
-neither exists yet at this stage of the build.
-"""
+"""Unit tests that the domain package's dataclasses reject every malformed construction the contract forbids."""
 
 from __future__ import annotations
 

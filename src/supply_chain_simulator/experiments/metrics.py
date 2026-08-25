@@ -1,18 +1,4 @@
-"""Run-level metrics for one branch and experiment-level statistics across replications.
-
-Inside the experiments package, this module turns one branch's finished
-SimulationResult (plus that branch's decision-latency samples and, for
-disrupted branches, the scenario's shock end day) into the exact RunMetrics
-CLAUDE.md section 11.19 lists, turns four branches' costs for one replication
-into a ReplicationComparison (the paired TCD delta and its winner, section
-5.8), and turns a full set of replications' comparisons into the
-ExperimentSummary CLAUDE.md section 27.8 requires (means, medians, the 95%
-confidence interval, win rates, and percentiles). In the full system, this is
-the only place TCD, delta, and every aggregate statistic are computed, so the
-same arithmetic backs both the printed CLI summary and summary.json. It does
-not run a simulation or decide what to compare — experiments/runner.py owns
-that — and it never mutates a SimulationResult.
-"""
+"""Computes run-level metrics, the paired TCD/delta per replication, and the aggregate experiment summary (means, CI, win rates). The one place every statistic is calculated."""
 
 from __future__ import annotations
 

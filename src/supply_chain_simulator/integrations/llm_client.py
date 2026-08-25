@@ -1,19 +1,4 @@
-"""Talks to the OpenAI Responses API, or reproduces/fakes that conversation.
-
-Inside the integrations package, this module owns every byte that crosses the
-boundary to an external LLM provider: `OpenAIResponsesClient` runs the actual
-tool-calling round trip against OpenAI's Responses API, `ReplayLLMClient`
-reproduces a previously-recorded interaction from `llm_interactions.jsonl`
-with no network call at all, and `FakeLLMClient` is a fully local test double.
-All three implement the same `LLMClient` protocol, so `policies/llm_agent.py`
-can swap between live, replay, and fake execution without changing how it
-builds a decision. In the full system, this is the only file that imports the
-`openai` package or knows what a JSON-schema function tool looks like on the
-wire; it never sees `SimulationState` and never decides what a shipment
-should do — it only carries a prompt, a set of tool definitions, and a local
-tool-execution callback back and forth until the model submits a decision or
-runs out of budget.
-"""
+"""Implements LLMClient three ways: OpenAIResponsesClient (live API), ReplayLLMClient (replays a recorded interaction), FakeLLMClient (test double). The only file that knows the OpenAI wire format."""
 
 from __future__ import annotations
 

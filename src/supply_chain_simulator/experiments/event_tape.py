@@ -1,17 +1,4 @@
-"""Generates the policy-independent random future shared by every branch.
-
-Inside the experiments package, this module derives per-replication random
-streams from a base seed, draws realized demand and ordinary transport
-delays from them, realizes each scenario's shock templates (start-day
-jitter, duration, information delay — V2 §V2.3.3/§V2.3.4) and each
-scheduled release's quantity (V2 §V2.3.5), and bundles all of it together
-into one EventTape per replication. In the full system, this is what
-guarantees fairness: every random draw happens once, before any policy makes
-a single decision, and the undisrupted counterfactual reuses the exact same
-draws with only the realized shocks removed. It does not decide what a
-policy does with these events, and it does not apply them to a
-SimulationState — that is simulation/engine.py's job.
-"""
+"""Derives per-replication random streams and draws demand, transport delays, realized shocks, and shipment quantities from them into one EventTape, the policy-independent random future every branch shares."""
 
 from __future__ import annotations
 

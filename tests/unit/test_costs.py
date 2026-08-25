@@ -1,12 +1,4 @@
-"""Unit tests for simulation/costs.py: every charge, by hand-calculated value.
-
-Inside tests/unit, this file checks transport, reroute, expedite, holding,
-backlog, late-delivery, terminal, and total cost against expected values
-computed independently of the functions under test, per CLAUDE.md section
-11.7's exact formulas. It does not test when these charges are triggered
-during a simulated day, since simulation/transition.py does not exist yet at
-this stage of the build.
-"""
+"""Unit tests for every cost formula in simulation/costs.py against independently hand-calculated values."""
 
 from __future__ import annotations
 

@@ -1,13 +1,4 @@
-"""Unit tests for integrations/llm_client.py.
-
-Inside tests/unit, this file checks `OpenAIResponsesClient`'s tool-call loop,
-retry/backoff behavior, and `store=False`/secret-free request assembly
-against a fake, in-process stand-in for the `openai.OpenAI` client (never a
-real network call, per CLAUDE.md section 30.13), plus `ReplayLLMClient`'s
-matching/duplicate/missing-key behavior and `FakeLLMClient`'s basics. It does
-not exercise policies/llm_agent.py's interpretation of the results it
-produces — tests/unit/test_llm_agent.py covers that.
-"""
+"""Unit tests for integrations/llm_client.py: the tool-call loop, retries, and secret-free request assembly, against a fake stand-in for the OpenAI client."""
 
 from __future__ import annotations
 

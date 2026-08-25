@@ -1,15 +1,4 @@
-"""Exogenous-event definitions: demand, releases, shocks, and the event tape.
-
-Inside the domain package, this module defines the events that happen to the
-simulation regardless of which policy is deciding — realized demand,
-scheduled shipment releases, and designed disruptions (shocks) — plus the
-per-day bundle (DayEvents) and the full per-replication EventTape that holds
-them. In the full system, this is the shared vocabulary that lets the
-experiment package generate one policy-independent random future and replay
-it unchanged across every branch of a paired comparison. It does not generate
-any of these events itself (that is experiments/event_tape.py) and does not
-know anything about how an event is later applied to a SimulationState.
-"""
+"""Defines the events that happen regardless of policy: demand, shipment releases, shocks, and the per-day/per-replication EventTape bundling them."""
 
 from __future__ import annotations
 

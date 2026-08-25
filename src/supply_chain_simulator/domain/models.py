@@ -1,15 +1,4 @@
-"""Immutable business definitions: the network, its nodes, edges, and product.
-
-Inside the domain package, this module defines the permanent, never-mutated
-vocabulary of the supply chain — node and transport-mode enums, the frozen
-Node/Edge/Product entities, the NetworkDefinition that bundles them into one
-lookup-able network, and the Route descriptor used to describe a path through
-it. In the full system, this is the shared ground truth that the physics, the
-observation builder, and both policies all agree on: a node or an edge means
-exactly the same thing everywhere. It does not hold any per-day operational
-status (availability, multipliers, capacity usage) — that belongs to
-domain/state.py — and it never changes once loaded for a run.
-"""
+"""Defines the immutable network vocabulary, Node, Edge, Product, NetworkDefinition, Route, the permanent ground truth every other package agrees on."""
 
 from __future__ import annotations
 

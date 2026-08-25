@@ -1,19 +1,4 @@
-"""Runs the complete paired experiment: warm-up, four branches, every replication.
-
-Inside the experiments package, this module is CLAUDE.md section 11.18's
-ExperimentRunner: for every replication it derives one seed, builds the
-paired disrupted/undisrupted event tapes, runs a decisions-disabled warm-up
-once, snapshots and resets it into one shared starting point, deep-clones
-that snapshot into the heuristic-undisrupted, heuristic-disrupted,
-comparison-undisrupted, and comparison-disrupted branches (in that fixed
-order), and turns their costs into one paired TCD delta. In the full system,
-this is where the research comparison actually happens — the two policies
-being compared are injected as plain `Policy` values, so this module never
-imports HeuristicPolicy or LLMAgentPolicy itself, and a fake policy can
-stand in for the LLM agent before Milestone 8 exists. It does not compute
-metrics itself (experiments/metrics.py does) and does not decide how a
-result is serialized (data_io/writers.py does).
-"""
+"""Runs the full paired experiment: a warm-up, then the four heuristic/LLM x undisrupted/disrupted branches per replication. Policies are injected as plain values; this module never imports a concrete one."""
 
 from __future__ import annotations
 

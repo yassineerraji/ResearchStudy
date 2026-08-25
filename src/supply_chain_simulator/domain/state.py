@@ -1,17 +1,4 @@
-"""Mutable run state, per-day records, and the final result of one run.
-
-Inside the domain package, this module defines everything that changes as a
-simulation progresses: shipment lifecycle and position, per-day operational
-overrides on top of the immutable network, inventory and backlog, running
-cost and service counters, and the complete SimulationState that bundles them
-for one day. It also defines the historical, read-only records a run
-produces — DailyMetrics for one day and SimulationResult for a whole run. In
-the full system, SimulationState is what the engine mutates and what an
-observation is built from, but policies never receive it directly. This
-module does not decide what happens to the state (that is
-simulation/transition.py's job) and does not itself enforce day-to-day
-invariants across mutations — those are asserted by the engine.
-"""
+"""Defines everything that changes during a run: shipment state, operational overrides, inventory/backlog, cost counters, and SimulationState, plus the DailyMetrics/SimulationResult a run produces."""
 
 from __future__ import annotations
 

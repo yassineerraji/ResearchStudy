@@ -1,27 +1,4 @@
-"""Turns one or more experiment output directories into the plot set defined
-
-Standalone script, deliberately outside src/supply_chain_simulator: it only
-ever reads the CSV/JSON/JSONL files data_io/writers.py already produces
-after a run and never touches simulation behavior, so it has no bearing on
-scientific validity or fairness. Given one --experiment/--label pair, it
-produces the eight per-scenario plots (01, 02, 03, 04, 05, 06, 09, 10). Given
-two or more, it also produces the cross-scenario forest plot (07).
-
-Given one or more --cell TOPOLOGY SEVERITY PATH triples (V2's topology x
-severity grid, CLAUDE.md V2.8.1), it additionally produces six grid-level
-plots (08, 11-15) into <output-dir>/grid/: a significance-masked mean-delta
-heatmap, a win-rate heatmap, a topology x severity interaction plot, a
-cross-cell win/loss/tie summary, a signal-to-noise-by-cell chart (the direct
-check on whether V2's redesign fixed the 100%/0%-win-rate problem V1's audit
-found), and a QA plot confirming the realized shock/quantity randomness
-matches what each cell's config describes. Each --cell also gets the normal
-per-scenario plot set, labeled "<Topology> x <Severity>". The grid need not
-be all nine cells -- missing combinations render as blank, labeled cells.
-
-Requires the optional "analysis" dependency group
-(`pip install -e ".[analysis]"`) since it is the only place in this project
-that uses matplotlib.
-"""
+"""Renders plots from already-written experiment output directories: per-scenario plots, a cross-scenario comparison, and (with --cell) the V2 topology x severity grid. Standalone script outside src/, reads only files data_io/writers.py wrote. Requires the optional "analysis" extra (matplotlib)."""
 
 from __future__ import annotations
 

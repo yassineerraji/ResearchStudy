@@ -1,16 +1,4 @@
-"""Shared cost calculations, charged identically for every policy and branch.
-
-Inside the simulation package, this module owns every rule that turns a
-physical event — an edge entry, a reroute, an expedite, a day's held
-inventory or backlog, a late delivery, an unresolved end-of-run state — into
-a cost, and adds it to a SimulationState's running CostCounters. In the full
-system, this is the one place the total cost of a run is defined, so that
-the heuristic and the LLM agent are always scored by exactly the same
-arithmetic. It does not decide when an edge entry, reroute, or delivery
-happens — simulation/transition.py calls these functions at the right point
-in the daily sequence — and it does not estimate future cost, only charges
-cost that has already actually occurred.
-"""
+"""Every cost formula (transport, reroute, expedite, holding, backlog, late, terminal), charged identically for every policy and branch. Charges costs that already occurred; never estimates future ones."""
 
 from __future__ import annotations
 

@@ -1,18 +1,4 @@
-"""The bounded LLM decision agent: one shipment, five tools, one submission.
-
-Inside the policies package, this module implements CLAUDE.md sections 11.15
-and 23: a versioned system prompt, the five approved read-only/submission
-tools (each a deterministic local view over one immutable
-`DecisionObservation`, never simulation state), and `LLMAgentPolicy`, which
-turns one observation into one `DecisionAction` by running an `LLMClient`'s
-tool loop and interpreting whatever it returns. In the full system, this is
-the research question's other half — the same `Policy` protocol the
-heuristic implements, so it is held to exactly the same observation,
-validation, and fallback rules. It never calls a provider directly (that is
-integrations/llm_client.py's job) and never repairs an invalid submission —
-an unparseable or infeasible one becomes ABSTAIN and flows into the same
-fallback chain every policy uses.
-"""
+"""The bounded LLM policy: a system prompt, five read-only/submission tools, and LLMAgentPolicy, which runs an LLMClient's tool loop and turns its result into one DecisionAction. An invalid submission becomes ABSTAIN."""
 
 from __future__ import annotations
 

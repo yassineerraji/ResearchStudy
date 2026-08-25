@@ -307,9 +307,9 @@ mypy                                      # type checks
 
 None of the automated tests call the real OpenAI API; the AI-related tests use a fully local, scripted stand-in, so the test suite costs nothing and never depends on network access.
 
-## Using the webapp
+## Using the webapp 
 
-`webapp/` (FastAPI backend + React/Vite frontend) is a separate, optional front end over the same `outputs/` directories and the same CLI this README describes — it reads and shells out but never touches simulation logic directly. It has four parts:
+`webapp/` (FastAPI backend + React/Vite frontend) was developed with an AI coding agent and is a separate, optional front end over the same `outputs/` directories and the same CLI this README describes — it reads and shells out but never touches simulation logic directly. It has four parts:
 
 - **About** — the research question, the network/shock/action-space model, and the paired-branch fairness mechanism, in plain terms.
 - **Findings** — the audited result itself, computed live from whatever's actually in `outputs/`: the V1 severity-flip story, the full V2 topology x severity grid as a heatmap, and the signal-to-noise check confirming the V2 redesign fixed the flaw its own audit found. Nothing here is a hardcoded number.

@@ -1,14 +1,4 @@
-"""Unit tests for decisions/validator.py, and decisions/observation.py.
-
-Inside tests/unit, this file checks every ValidationCode decisions/validator.py
-can produce, plus the valid WAIT/REROUTE/EXPEDITE/ABSTAIN cases from CLAUDE.md
-section 11.11 and section 30.7. There is no separate observation test file in
-the approved repository structure (CLAUDE.md section 7), so the observation
-builder's shipment/destination/shock/route-option/allowed-action assembly is
-also exercised here, since every validator test needs one anyway. It does not
-test simulation/routing.py's own route-estimate math, which tests/unit/
-test_routing.py already covers.
-"""
+"""Unit tests for every ValidationCode decisions/validator.py can produce; also covers decisions/observation.py, which has no test file of its own."""
 
 from __future__ import annotations
 

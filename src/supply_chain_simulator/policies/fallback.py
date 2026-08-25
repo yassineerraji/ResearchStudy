@@ -1,17 +1,4 @@
-"""Safe defaults and the shared fallback chain used when a policy is rejected.
-
-Inside the policies package, this module provides `WaitFallbackPolicy` and
-`HeuristicFallbackPolicy` (the two configurable defaults CLAUDE.md section
-11.14 requires, one unconditional and one delegating to the classical
-heuristic), plus `resolve_action`, which runs the exact fallback chain
-section 14 step 9 describes: validate the proposed action; if it is ABSTAIN
-or invalid, ask the fallback policy and validate its action too; if that is
-also invalid, fall back to a terminal safe WAIT. In the full system, this is
-what simulation/engine.py calls once per triggered shipment so that an
-invalid or abstaining proposal never reaches transition.py, while keeping the
-proposed, fallback, and executed actions distinguishable for audit. It does
-not execute the resulting action against simulation state.
-"""
+"""Provides WaitFallbackPolicy, HeuristicFallbackPolicy, and resolve_action: validate, then fallback, then terminal WAIT, keeping an invalid or abstaining proposal from ever reaching transition.py."""
 
 from __future__ import annotations
 

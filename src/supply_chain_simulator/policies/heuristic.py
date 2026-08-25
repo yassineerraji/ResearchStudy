@@ -1,17 +1,4 @@
-"""The transparent, deterministic classical benchmark policy.
-
-Inside the policies package, this module implements the exact rule CLAUDE.md
-sections 11.13 and 22 specify: build a WAIT candidate from the current plan, a
-REROUTE candidate for every non-emergency route option, and an EXPEDITE
-candidate for every emergency route option (kept only when the current plan
-is already at least `expedite_trigger_lateness_days` late, or when no
-non-emergency route exists), then pick the lowest estimated-total-cost
-candidate, tie-breaking WAIT before REROUTE before EXPEDITE and then by the
-lexicographically smallest route ID. In the full system, this is the
-research question's classical baseline, held to the same observation and
-validation rules as the LLM agent. It never looks at anything beyond the
-observation it is given and never mutates simulation state.
-"""
+"""The transparent, deterministic classical baseline: builds WAIT/REROUTE/EXPEDITE candidates and picks the lowest estimated cost, tie-breaking WAIT before REROUTE before EXPEDITE. Never sees anything beyond its observation."""
 
 from __future__ import annotations
 

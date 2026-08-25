@@ -1,17 +1,4 @@
-"""Unit tests for policies/heuristic.py, policies/base.py, and policies/fallback.py.
-
-Inside tests/unit, this file checks the classical heuristic's exact candidate
-construction and cost-tie-break rule from CLAUDE.md sections 11.13 and 22:
-wait is cheapest, reroute is cheapest, expedite is cheapest and eligible,
-expedite is cheapest but excluded for being below the lateness trigger, no
-alternative exists, exact ties, and deterministic repeated decisions. There
-is no separate test file for policies/base.py or policies/fallback.py in the
-approved repository structure (CLAUDE.md section 7), so PolicyDecisionRecord
-timing and the validate-then-fallback-then-terminal-WAIT chain are also
-exercised here, since HeuristicFallbackPolicy wraps the same HeuristicPolicy
-this file already builds. It does not test decisions/validator.py's own
-validation codes, which tests/unit/test_validator.py already covers.
-"""
+"""Unit tests for the heuristic's candidate construction and tie-break rule; also covers policies/base.py and policies/fallback.py, which have no test file of their own."""
 
 from __future__ import annotations
 

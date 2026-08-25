@@ -1,30 +1,4 @@
-"""Owns the daily orchestration loop: the one place a run actually happens.
-
-Inside the simulation package, this module drives CLAUDE.md section 14's
-thirteen-step daily sequence from a start day through a horizon and an
-optional drain phase, using the pure/mutating pieces transition.py provides,
-the cost/route calculations routing.py and costs.py provide, and — for each
-shipment a day's triggers select — one observation built by
-decisions/observation.py, resolved through the policy and fallback chain
-policies/base.py and policies/fallback.py provide. In the full system, this
-is what turns one policy-independent event tape plus one policy into one
-complete, auditable SimulationResult, identically for every policy and every
-branch of a paired comparison — it deep-clones its input and never mutates
-the caller's snapshot. It only ever touches a policy through the `Policy`
-protocol, so it never branches on, or even imports, a concrete policy class.
-When given a `decision_trace_sink`, it also appends one `DecisionTraceEntry`
-per shipment decision, which experiments/runner.py and data_io/writers.py
-use to write CLAUDE.md section 27.5's decision_traces.jsonl — a side channel
-rather than a second return value, so `run`'s return type stays exactly
-`SimulationResult`. Likewise, a `llm_interaction_sink` collects one
-`LLMInteractionResult` per decision whose policy exposed one, for section
-27.6's llm_interactions.jsonl. Before the day loop starts, `run` also calls
-`configure_run_context(run_identity)` on `policy` and `fallback_policy` if
-either defines it — both this and `last_interaction` (read by
-policies/base.py's `make_decision_record`) are duck-typed, opt-in hooks that
-only policies/llm_agent.py's `LLMAgentPolicy` defines, so this module never
-imports it and never branches on a concrete policy type.
-"""
+"""Drives the daily orchestration loop end to end: transitions, routing, decisions, and costs, for one policy over one event tape. Deep-clones its input, never branches on a concrete policy type, and optionally records decision/LLM traces."""
 
 from __future__ import annotations
 

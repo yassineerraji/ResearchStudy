@@ -1,16 +1,4 @@
-"""Unit tests for policies/llm_agent.py.
-
-Inside tests/unit, this file checks `LLMAgentPolicy.decide()`'s interpretation
-of an `LLMClient`'s result into a `DecisionAction` (normal submission,
-malformed submission, tool-limit, no-submission), `configure_run_context`'s
-effect on the `DecisionKey` embedded in `last_interaction`, each of the five
-tools' local dispatch via `make_tool_executor`, and the versioned prompt
-hash's stability. It drives `LLMAgentPolicy` against `FakeLLMClient` and a
-real `build_observation(...)` off `tiny_network.yaml` (the same convention
-tests/unit/test_heuristic.py and tests/unit/test_validator.py use), never a
-real network call. It does not test integrations/llm_client.py's own
-tool-loop mechanics, which tests/unit/test_llm_client.py covers.
-"""
+"""Unit tests for LLMAgentPolicy: interpreting an LLMClient's result, each tool's dispatch, and prompt-hash stability. Uses FakeLLMClient, never a real network call."""
 
 from __future__ import annotations
 

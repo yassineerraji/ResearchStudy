@@ -1,16 +1,4 @@
-"""Builds the read-only DecisionObservation a policy is allowed to see.
-
-Inside the decisions package, this module turns one shipment's slice of the
-current SimulationState into an immutable DecisionObservation: the shipment's
-own context, the demand destination's inventory and backlog picture, the
-known shocks relevant to its remaining route, an estimate of its current
-plan, and up to five candidate routes with their cost and lead-time
-estimates. In the full system, this is what makes the heuristic and the LLM
-agent's inputs provably equivalent — both are built from this same function,
-against the same pre-action state, using the same route and cost
-calculations from simulation/routing.py. It does not choose or validate an
-action and never exposes or mutates the mutable SimulationState itself.
-"""
+"""Builds the immutable DecisionObservation one shipment's decision is based on. Makes the heuristic's and LLM's inputs provably equivalent."""
 
 from __future__ import annotations
 

@@ -1,15 +1,4 @@
-"""Policy actions and the shared record of whether one was accepted.
-
-Inside the domain package, this module defines the four-action vocabulary
-every policy shares (WAIT, REROUTE, EXPEDITE, ABSTAIN), the structured
-DecisionAction a policy returns, and the ValidationCode/ValidationResult pair
-the shared validator uses to accept or reject it. In the full system, this is
-the common contract that makes the heuristic and the LLM agent comparable:
-both produce exactly the same action type, and both are held to the same
-validation outcomes. It does not implement validation logic itself (that is
-decisions/validator.py) and does not execute actions against simulation
-state.
-"""
+"""Defines the four-action policy vocabulary (WAIT/REROUTE/EXPEDITE/ABSTAIN), the DecisionAction a policy returns, and the ValidationCode/ValidationResult pair the validator produces."""
 
 from __future__ import annotations
 

@@ -1,14 +1,4 @@
-"""Unit tests for cli.py's dotenv loader.
-
-Inside tests/unit, this file checks _load_dotenv's parsing rules in
-isolation: it loads simple KEY=VALUE lines, skips comments/blanks, never
-overrides an already-set environment variable, and never loads a blank
-value (so an unfilled-in placeholder line behaves as if absent). It does
-not test the rest of cli.py (argument parsing, run orchestration), which
-has no dedicated test file in this project and is exercised indirectly
-through every integration test that drives the underlying components
-cli.py wires together.
-"""
+"""Unit tests for cli.py's dotenv loader: parsing, comment/blank skipping, and never overriding an already-set variable."""
 
 from __future__ import annotations
 

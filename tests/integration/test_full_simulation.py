@@ -1,37 +1,4 @@
-"""Integration test: a tiny simulation run against manually calculated values.
-
-Inside tests/integration, this file drives simulation/engine.py end to end
-over the tiny three-node fixture for a manually checkable three-day horizon
-plus a two-day drain, with zero-variance demand and fully reliable transport
-so every number is exactly hand-calculable rather than approximated. It
-checks shipment positions, inventory, backlog, costs, and final metrics for
-an undisrupted run, a disrupted run that exercises an edge closure and the
-terminal-cost path, and that repeated runs are exactly deterministic, plus
-one disrupted run with the real HeuristicPolicy wired in through the engine
-to confirm the full observation/decide/validate/fallback pipeline completes
-and produces a hand-checkable outcome. It does not test the heuristic's own
-candidate-cost logic in isolation, which tests/unit/test_heuristic.py covers.
-
-Hand-calculated undisrupted trace (horizon_days=3, drain_days=2):
-  Day 1: release s001 (qty 5, due 6); demand 5 met from initial inventory 10
-         (-> inventory 5); s001 departs supplier_to_hub (transport 5.0).
-  Day 2: s001 arrives hub_1 (intermediate); release s002 (due 7); demand 5
-         met from inventory 5 (-> inventory 0); s001 departs hub_to_plant,
-         s002 departs supplier_to_hub (transport +10.0 -> 15.0).
-  Day 3: s001 delivered on time (day 3 <= due 6, inventory -> 5); s002
-         arrives hub_1; release s003 (due 8); demand 5 met (-> inventory 0);
-         s002 departs hub_to_plant, s003 departs supplier_to_hub
-         (transport +10.0 -> 25.0).
-  Day 4 (drain): s002 delivered on time (day 4 <= due 7, inventory -> 5);
-         s003 arrives hub_1; no demand/releases beyond the horizon; s003
-         departs hub_to_plant (transport +5.0 -> 30.0); holding on 5 units.
-  Day 5 (drain): s003 delivered on time (day 5 <= due 8, inventory -> 10);
-         all shipments delivered and backlog zero -> early stop.
-  Holding cost accrues on end-of-day inventory: day1 5*0.10=0.5, day2 0,
-  day3 0, day4 5*0.10=0.5, day5 10*0.10=1.0 -> total 2.0.
-  Total cost = transport 30.0 + holding 2.0 = 32.0. No terminal cost, since
-  the run resolved before the maximum drain day.
-"""
+"""Drives the engine end to end over a tiny, hand-calculable fixture (undisrupted, disrupted, and with the real heuristic wired in) and checks every number by hand."""
 
 from __future__ import annotations
 

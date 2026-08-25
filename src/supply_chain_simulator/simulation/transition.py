@@ -1,17 +1,4 @@
-"""Pure or narrowly-mutating daily state changes: the ten steps of one day.
-
-Inside the simulation package, this module implements the individual pieces
-of CLAUDE.md section 14's exact daily event order — resetting capacity
-counters, revealing and applying shocks, processing arrivals, releasing
-shipments, fulfilling demand from inventory and backlog, identifying which
-shipments need a decision, applying already-validated actions, allocating
-today's departures under capacity limits, and charging end-of-day costs and
-metrics. In the full system, simulation/engine.py calls these functions in
-the fixed order that makes every run reproducible and every policy's
-physical consequences identical. This file does not call an LLM, does not
-choose an action on a policy's behalf, and does not decide when a day ends —
-it only carries out one already-decided step at a time.
-"""
+"""The individual daily state-change steps, releases, arrivals, demand fulfilment, applying validated actions, departures, in the exact order engine.py calls them. Chooses no actions itself."""
 
 from __future__ import annotations
 

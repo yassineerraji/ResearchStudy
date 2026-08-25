@@ -1,15 +1,4 @@
-"""Graph construction, candidate-route enumeration, and route cost estimates.
-
-Inside the simulation package, this module builds the day's operational
-graph from the immutable network plus current availability and multipliers,
-finds candidate routes for a shipment that needs a decision, and estimates
-what each candidate — and the shipment's current plan — would cost. In the
-full system, this is the single shared source of route options and estimates
-for both the heuristic and the LLM agent, which is what keeps the comparison
-fair: neither policy can see a route the other could not have seen, and
-neither uses a different cost formula. It does not choose an action, does
-not validate one, and never mutates the SimulationState it reads from.
-"""
+"""Builds the day's operational graph, enumerates candidate routes for a shipment, and estimates their cost. The single shared source of route options for both policies."""
 
 from __future__ import annotations
 

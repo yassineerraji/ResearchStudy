@@ -1,20 +1,4 @@
-"""Serializes one experiment run's configuration, traces, and results to disk.
-
-Inside the data_io package, this module owns every file CLAUDE.md section 27
-lists inside one `outputs/<experiment_id>__<timestamp>/` directory: the
-manifest and resolved configuration written once, event tapes/run
-metrics/daily metrics/decision traces/LLM interactions appended
-incrementally as each replication's branches finish, the replications table
-and summary written once at the end, and `run.log` — a DEBUG-level file
-handler attached only to the `supply_chain_simulator` logger namespace
-(CLAUDE.md section 28), deliberately never to the root logger, so that
-third-party libraries' own DEBUG output (the `openai`/`httpx` SDKs, which
-this project never controls) can never end up in it. In the full system,
-this is the only place a SimulationResult, a ReplicationComparison, or a
-decision becomes a line of CSV or JSON — experiments/runner.py decides what
-happened and when, this module only decides how it is written. It does not
-compute any metric itself and does not decide what belongs in an experiment.
-"""
+"""Serializes one run's manifest, resolved config, event tapes, metrics, traces, and summary into its output directory; decides only how results are written, never what happened."""
 
 from __future__ import annotations
 

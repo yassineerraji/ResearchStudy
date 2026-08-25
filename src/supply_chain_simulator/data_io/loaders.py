@@ -1,22 +1,4 @@
-"""Loads YAML configuration and converts it into the immutable domain model.
-
-Inside the data_io package, this module turns the network, scenario, policy,
-and experiment YAML files under configs/ into typed, validated Pydantic
-models, resolves the file paths an experiment references relative to that
-experiment file, and combines everything into one ResolvedConfig. It then
-converts a validated NetworkConfig into the frozen NetworkDefinition (Node,
-Edge, Product) the simulation actually runs on and builds the day-0
-SimulationState from it. A ScenarioConfig's shocks are *templates*
-(V2 §V2.3.3) — turning one into a concrete, realized Shock domain object is
-experiments/event_tape.py's job, not this module's, since realization draws
-from a per-replication random stream this module never sees. In the full
-system, this is the place a malformed,
-incomplete, or internally inconsistent configuration is caught and reported
-before any simulation code runs, and the only place configuration data turns
-into domain objects. It does not perform the deeper graph-reachability
-analysis that route enumeration needs — that belongs to simulation/routing.py
-— and it does not implement any day-to-day simulation behavior itself.
-"""
+"""Parses and validates YAML config into typed Pydantic models, then converts it into the immutable domain model (NetworkDefinition, day-0 SimulationState). The one place a malformed configuration is caught before simulation runs."""
 
 from __future__ import annotations
 

@@ -1,17 +1,4 @@
-"""Integration tests for cross-run reproducibility (CLAUDE.md section 30.11).
-
-Inside tests/integration, this file checks that a fixed config and seed
-produce byte-for-byte identical results across repeated runs: the same
-event tape, the same heuristic-policy physical/cost outcome, the same
-fake-LLM-policy outcome, and — via `ReplayLLMClient` — the same decision
-reproduced from a previously-recorded `llm_interactions.jsonl` line without
-any network call. It reuses the tiny three-node network and edge-closure
-scenario tests/integration/test_full_simulation.py already exercises in
-detail, since this file's job is reproducibility, not re-verifying physics.
-Per CLAUDE.md section 30.13, live LLM behavior is deliberately excluded from
-this (and every automated) test: `OpenAIResponsesClient` is never
-instantiated here, and no test in this repository makes a real API call.
-"""
+"""Checks that a fixed config and seed reproduce byte-identical results across runs, including a decision replayed from a recorded interaction with no network call."""
 
 from __future__ import annotations
 

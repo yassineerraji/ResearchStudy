@@ -1,15 +1,4 @@
-"""Unit tests for simulation/routing.py: graph, candidates, and estimates.
-
-Inside tests/unit, this file checks route continuity, that unavailable nodes
-and edges are excluded from new candidate routes, that emergency routes are
-identified correctly, that candidate routes are sorted and limited to five
-per CLAUDE.md section 11.6's tie-break order, that static capacity filtering
-rejects routes a shipment cannot physically fit through, that transport-cost
-and lead-time estimates match hand-calculated values, and that estimating a
-blocked current plan uses a known reopening day (or reports None when none
-is known). It does not test simulation/costs.py or any day-to-day state
-mutation, since transition.py does not exist yet at this stage of the build.
-"""
+"""Unit tests for simulation/routing.py: route continuity, candidate filtering, sorting, and cost/lead-time estimates against hand-calculated values."""
 
 from __future__ import annotations
 

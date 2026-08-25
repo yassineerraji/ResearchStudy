@@ -1,19 +1,4 @@
-"""Integration tests for the Milestone 7 trio: experiments/runner.py,
-experiments/metrics.py, and data_io/writers.py, run together.
-
-There is no separate test file for metrics.py or writers.py in the approved
-repository structure (CLAUDE.md section 7), so their arithmetic and output
-formats are exercised here too, alongside CLAUDE.md section 30.10's paired
-invariants: branch state objects are distinct, the undisrupted tape differs
-from the disrupted tape only by shocks, policies given equal observations
-propose equal actions, TCD and delta are exact, and output rows cover all
-four branches. `TestMultiReplicationFakePolicyExperimentWritesAllFiles` is
-Milestone 7's own acceptance test verbatim: "a multi-replication
-heuristic-versus-fake-policy experiment writes all required files" --
-WaitFallbackPolicy stands in for the LLM agent, which does not exist until
-Milestone 8. It does not test simulation/engine.py's own day-loop physics,
-which tests/integration/test_full_simulation.py already covers.
-"""
+"""Integration tests for runner.py, metrics.py, and writers.py together: paired-branch invariants, exact TCD/delta, and that a full experiment writes every required output file."""
 
 from __future__ import annotations
 

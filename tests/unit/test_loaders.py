@@ -1,15 +1,4 @@
-"""Unit tests for data_io/loaders.py: config parsing and domain conversion.
-
-Inside tests/unit, this file checks that the five real configuration files
-under configs/ and the tiny test fixtures parse into the expected typed
-objects, that every malformed configuration this module is meant to reject
-actually fails loudly (with ConfigurationError from the file-loading path, or
-pydantic.ValidationError from direct model construction) rather than being
-silently accepted, and that build_network_definition and build_initial_state
-produce the exact domain objects and day-0 state CLAUDE.md section 13.1
-describes. It does not test simulation behavior, since no day ever advances
-in this file.
-"""
+"""Unit tests for data_io/loaders.py: real and fixture configs parse correctly, malformed ones fail loudly, and domain conversion matches the contract."""
 
 from __future__ import annotations
 

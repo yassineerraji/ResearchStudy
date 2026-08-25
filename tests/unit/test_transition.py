@@ -1,15 +1,4 @@
-"""Unit tests for simulation/transition.py: each daily step, in isolation.
-
-Inside tests/unit, this file checks shipment release, edge entry and
-calculated arrival day, intermediate arrival, final delivery and inventory
-addition, node closure blocking arrival, capacity contention incrementing
-wait days, backlog-first demand fulfilment, decision-trigger detection, and
-applying already-validated actions — each function from CLAUDE.md section
-11.8 tested against its own exact rule from section 14. The full thirteen-
-step daily order and end-to-end state invariants are covered together by
-tests/integration/test_full_simulation.py, which drives these same functions
-through simulation/engine.py.
-"""
+"""Unit tests for each daily step in simulation/transition.py, in isolation, against its exact rule."""
 
 from __future__ import annotations
 

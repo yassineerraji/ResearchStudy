@@ -1,18 +1,4 @@
-"""Validates a policy's proposed DecisionAction against one observation.
-
-Inside the decisions package, this module is the single gate every proposed
-action passes through before simulation/transition.py is allowed to apply it:
-it independently re-checks the action's shape, the shipment it targets, and
-— for REROUTE/EXPEDITE — that the chosen route was one of the observation's
-own approved options, starts and ends where required, uses only currently
-available nodes and edges, fits the shipment's quantity, and matches its
-action type's emergency semantics. In the full system, this is what makes the
-heuristic and the LLM agent's actions comparable: both are held to exactly
-the same feasibility rules, and this module never repairs or reinterprets an
-invalid action, it only classifies it. It does not execute a valid action
-against the SimulationState and does not decide what to do about an invalid
-one (that is policies/fallback.py's job).
-"""
+"""Validates a proposed DecisionAction against its observation (shape, target, route feasibility, emergency semantics) before it can be applied. Classifies an invalid action; never repairs one."""
 
 from __future__ import annotations
 

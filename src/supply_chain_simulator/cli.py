@@ -1,22 +1,4 @@
-"""Command-line entry point: `validate-config` and `run`.
-
-At the top of the project, this module owns argument parsing and maps
-whatever goes wrong during a run to CLAUDE.md section 11.22's exit codes (0
-success, 1 unexpected error, 2 configuration error, 3 simulation invariant
-error, 4 LLM integration error). In the full system, it is the only place
-that turns a validated ResolvedConfig into concrete Policy objects and wires
-them into an ExperimentRunner and ExperimentWriter — it implements no
-business logic of its own. `_build_comparison_policy` reads the LLM
-credentials/model from the environment variables the config names (never
-logging their values), builds a live `OpenAIResponsesClient` or a
-`ReplayLLMClient` per `execution_mode`, and wraps it in `LLMAgentPolicy` with
-its configured fallback. `validate-config` never needs any of this, since it
-never instantiates a policy. `main` also loads a repo-root `.env` file (if
-present) into the process environment before dispatching either command, so
-`OPENAI_API_KEY`/`LLM_MODEL` can live in that gitignored file instead of the
-shell — `_load_dotenv` never overrides an already-set variable and never
-logs what it reads.
-"""
+"""Command-line entry point (validate-config, run). Parses arguments, builds policies from a resolved config, wires them into the experiment runner, and maps failures to exit codes; implements no simulation or decision logic of its own."""
 
 from __future__ import annotations
 
