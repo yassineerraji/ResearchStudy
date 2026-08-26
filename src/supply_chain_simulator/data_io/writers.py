@@ -16,7 +16,7 @@ from importlib import metadata
 from pathlib import Path
 from typing import Self, TextIO
 
-import yaml  # type: ignore[import-untyped]
+import yaml 
 
 from supply_chain_simulator.data_io.loaders import ResolvedConfig
 from supply_chain_simulator.decisions.observation import observation_to_canonical_dict
