@@ -128,7 +128,7 @@ Extended & Heavy  & $+22{,}114$ & [17950, 26279]  & 0\% \\
 \label{tab:v2}
 \end{table}
 
-\textbf{Validation.} Standard~$\times$~Medium is Phase~1's original configuration, re-run unmodified at Phase 2 scale: LLM wins 100\% of 100 replications, matching Phase 1's original pattern almost exactly (compare Table~\ref{tab:v1}'s Medium row); the shared infrastructure did not silently break.
+\textbf{Validation.} Standard~$\times$~Medium is Phase~1's original configuration, re-run unmodified at Phase 2 scale: LLM wins 100\% of 100 replications, matching Phase 1's original pattern almost exactly (compare Table~\ref{tab:v1}'s Medium row).
 
 \textbf{Headline result:} Compact and Standard reproduce Phase 1's shape, the LLM's advantage growing with severity.
 
@@ -146,7 +146,7 @@ Separately, Compact~$\times$~Medium becomes the first cell in either phase to la
 \mathrm{SNR} = \frac{|\overline{\Delta}|}{\mathrm{sd}(\Delta)}
 \label{eq:snr}
 \end{equation}
-and it sits at 0.6$\times$--3.0$\times$ across all nine Phase 2 cells, against the $7.6\times$--$10.2\times$ recomputed identically on Phase 1's real runs (Figure~\ref{fig:snr}): the audited root cause is measurably fixed, not merely asserted fixed.
+and it sits at 0.6$\times$--3.0$\times$ across all nine Phase 2 cells, against the $7.6\times$--$10.2\times$ recomputed identically on Phase 1's real runs (Figure~\ref{fig:snr}): the audited root cause is measurably fixed.
 
 \begin{figure}[t]
 \centering
@@ -156,7 +156,7 @@ and it sits at 0.6$\times$--3.0$\times$ across all nine Phase 2 cells, against t
 \end{figure}
 
 \section{Discussion: Synthesis Across Both Phases}
-Combining 798 replications across two phases and four network configurations, the study's answer to its research question is conditional, not universal.
+Combining 798 replications across two phases and four network configurations, the study's answer to its research question is not universal but conditional.
 
 \begin{description}[leftmargin=1.2em,style=unboxed]
 \item[Pros of the agentic policy.] Substantially larger cost reduction under severe disruption on constrained-to-moderate topologies (up to $-111{,}850$ mean $\Delta$); the only policy to ever produce a genuinely mixed, non-unanimous outcome (Compact~$\times$~Medium), suggesting situational judgment rather than a fixed rule; this advantage replicated independently across two separate live-API runs on the same network (Phase 1 and Phase 2's Standard column).
@@ -197,13 +197,11 @@ Before turning to a fundamentally different policy class, several scope simplifi
 \item[Dynamic pricing and fleet-level routing.] Transport costs and capacities are fixed per edge for a given day; nothing here models a carrier's own pricing response to demand, or routes a fleet of vehicles rather than abstract edge capacity. Both are standard extensions in classical logistics optimization and would test the same two policy types against a substantially richer cost surface.
 \end{description}
 
-Each of these is an extension to \emph{what the environment models}, in the same spirit as Phase 2's own topology and randomness extensions to Phase 1, not a change to how either policy is scored or compared.
+Each of these is an extension to \emph{what the environment models}, in the same spirit as Phase 2's own topology and randomness extensions to Phase 1.
 
 \subsection{A Reinforcement-Learning Formulation}
 \label{sec:rl}
 Both policies studied here are, in a precise sense, \emph{not learned}: the heuristic is a fixed rule, and the LLM agent's behavior comes from pre-trained general reasoning plus a prompt, not from experience inside this environment. A longer-term follow-up is to add a third arm that \emph{is} learned: a reinforcement-learning (RL) policy trained directly against the simulator's own state, action, and reward structure.
-
-The formulation is close to already sitting in the codebase (Figure~\ref{fig:rlloop}):
 
 \begin{description}[leftmargin=1.2em,style=unboxed]
 \item[State.] The same read-only \texttt{DecisionObservation} both existing policies already receive: shipment facts, destination and shock context, current plan, candidate routes.
